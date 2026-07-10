@@ -16,6 +16,20 @@ tolerance per project/bylaws without editing code). Defaults are conservative.
   GRIT_EVIDENCE_STRONG        best-score bar for irreversible w/o corroboration (default 0.82)
   GRIT_EVIDENCE_CORROBORATED  best-score bar for irreversible WITH >=2 sources  (default 0.65)
   GRIT_EVIDENCE_ADEQUATE      best-score bar for reversible high-stakes         (default 0.62)
+  GRIT_CONTRADICTION_OVERLAP  topic-overlap needed to call two sources "about the
+                              same claim" before a polarity clash counts as a
+                              conflict (default 0.18)
+
+Conflict detection (the CONTESTED verdict). Corroboration is only real if the
+corroborating sources AGREE. This module does NOT judge which source is right --
+that is a truth claim it deliberately refuses. It only detects, deterministically
+and conservatively, when two otherwise-trusted sources point in OPPOSITE
+directions on the same topic, and in that case withholds the "corroborated"
+discount and routes to a human instead of silently averaging a contradiction into
+a green light. The signal errs toward review: it fires only when both sources are
+high-trust, clearly share a subject, and clearly diverge in polarity. It will miss
+subtle contradictions (false negatives) and is not a fact-checker; it is a cheap
+guard against the specific failure of counting a disagreement as agreement.
 """
 
 from __future__ import annotations
@@ -66,6 +80,7 @@ LOW_QUALITY_DOMAINS = ("wikipedia.org", "reddit.com", "quora.com", "medium.com",
 class Verdict(str, Enum):
     SUFFICIENT = "sufficient"
     WEAK = "weak"
+    CONTESTED = "contested"         # trusted sources disagree; resolve/escalate
     INSUFFICIENT = "insufficient"   # must escalate; do not act
 
 
@@ -116,11 +131,73 @@ def quality_of(result: dict) -> float:
     return max(0.0, min(1.0, round(score, 3)))
 
 
+# Polarity cues. A source leans + if it asserts/confirms, - if it denies/refutes.
+# Deliberately small and explicit -- this is a signal, not sentiment analysis.
+_AFFIRM = ("confirmed", "confirms", "supported", "supports", "proven", "proves",
+           "effective", "works", "safe", "verified", "valid", "true", "correct",
+           "recommended", "successful", "increases", "improves", "yes")
+_DENY = ("not", "no evidence", "false", "incorrect", "unsafe", "does not", "doesn't",
+         "isn't", "is not", "cannot", "can't", "refuted", "debunked", "myth",
+         "ineffective", "fails", "unproven", "contrary", "disproven", "decreases",
+         "harmful", "denied", "denies", "never")
+
+_STOP = frozenset(("the", "and", "for", "that", "this", "with", "from", "into", "your",
+                   "have", "has", "are", "was", "were", "will", "would", "there", "their",
+                   "which", "what", "when", "does", "did", "not", "but", "you", "our"))
+
+
+def _count_cues(c: str, cues: tuple) -> int:
+    # Single tokens matched on word boundaries; multiword phrases as substrings.
+    return sum(c.count(" " + w + " ") if " " not in w else c.count(w) for w in cues)
+
+
+def _polarity(content: str) -> int:
+    """+1 leans affirmation, -1 leans denial, 0 neutral/mixed. Deterministic."""
+    c = " " + " ".join(content.lower().split()) + " "
+    aff, den = _count_cues(c, _AFFIRM), _count_cues(c, _DENY)
+    if den > aff:
+        return -1
+    if aff > den:
+        return 1
+    return 0
+
+
+def _salient(content: str) -> set[str]:
+    """Content words >4 chars, minus stopwords -- a cheap topic fingerprint."""
+    words = "".join(ch if ch.isalnum() else " " for ch in content.lower()).split()
+    return {w for w in words if len(w) > 4 and w not in _STOP}
+
+
+def _contradiction(scored: list, min_tier: float, overlap_thr: float) -> tuple[bool, str]:
+    """Do two high-trust results share a topic but clash in polarity?
+
+    Conservative: considers only sources at/above min_tier, requires real topic
+    overlap (Jaccard >= overlap_thr) AND opposite non-zero polarity. Returns
+    (fired, reason). Never asserts which source is correct.
+    """
+    strong = [r for s, r in scored if s >= min_tier and str(r.get("content") or "").strip()]
+    for i in range(len(strong)):
+        for j in range(i + 1, len(strong)):
+            a, b = strong[i], strong[j]
+            pa, pb = _polarity(str(a.get("content"))), _polarity(str(b.get("content")))
+            if pa == 0 or pb == 0 or pa == pb:
+                continue
+            ta, tb = _salient(str(a.get("content"))), _salient(str(b.get("content")))
+            if not ta or not tb:
+                continue
+            overlap = len(ta & tb) / len(ta | tb)
+            if overlap >= overlap_thr:
+                return True, (f"{a.get('provider')} and {b.get('provider')} share the topic "
+                              f"(overlap {overlap:.2f}) but assert opposite conclusions")
+    return False, ""
+
+
 def assess(results: list[dict], high_stakes: bool, reversible: bool) -> Assessment:
     """Is the evidence strong enough to act on, given stakes + reversibility?"""
     strong = _thr("GRIT_EVIDENCE_STRONG", 0.82)
     corrob = _thr("GRIT_EVIDENCE_CORROBORATED", 0.65)
     adequate = _thr("GRIT_EVIDENCE_ADEQUATE", 0.62)
+    overlap_thr = _thr("GRIT_CONTRADICTION_OVERLAP", 0.18)
 
     if not results:
         if high_stakes:
@@ -132,7 +209,19 @@ def assess(results: list[dict], high_stakes: bool, reversible: bool) -> Assessme
     best = max(s for s, _ in scored)
     independent = len({(r.get("provider"), (r.get("urls") or [None])[0]) for _, r in scored})
 
+    # A contradiction among trusted sources voids count-based corroboration: you
+    # cannot call two sources "agreement" if they disagree. Only relevant when the
+    # decision would otherwise LEAN ON corroboration (>=2 independent, high-stakes).
+    contested = False
+    contested_why = ""
+    if high_stakes and independent >= 2:
+        contested, contested_why = _contradiction(scored, corrob, overlap_thr)
+
     if high_stakes and not reversible:
+        if contested:
+            return Assessment(Verdict.CONTESTED, best,
+                              f"irreversible action but sources conflict -> resolve or escalate "
+                              f"({contested_why})", True)
         if best >= strong or (best >= corrob and independent >= 2):
             return Assessment(Verdict.SUFFICIENT, best,
                               "strong or corroborated evidence for an irreversible action")
@@ -141,6 +230,11 @@ def assess(results: list[dict], high_stakes: bool, reversible: bool) -> Assessme
                           "human or a stronger source", True)
 
     if high_stakes:
+        if contested and best < adequate:
+            # reversible but we were relying on corroboration and it's contradictory
+            return Assessment(Verdict.CONTESTED, best,
+                              f"reversible high-stakes action with conflicting sources -> review "
+                              f"({contested_why})", True)
         if best >= adequate or independent >= 2:
             return Assessment(Verdict.SUFFICIENT, best, "adequate for a reversible high-stakes action")
         return Assessment(Verdict.WEAK, best, "thin evidence; proceed with caution / review")
