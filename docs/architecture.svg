@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 690" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif" role="img">
+  <title>AgentGRIT architecture</title>
+  <desc>AgentGRIT is a governance core between your agents and the models and tools they use: cost-first routing, deterministic gates, deliberation, a trust ladder, and evidence-based verification, ending in done, refused, or escalated — all logged.</desc>
+  <rect x="0" y="0" width="980" height="690" fill="#0d1117"/>
+  <text x="490" y="40" text-anchor="middle" fill="#e6edf3" font-size="22" font-weight="700">AgentGRIT — the governance core around your agents</text>
+  <text x="490" y="63" text-anchor="middle" fill="#7d8590" font-size="13">cheapest capable model &#183; deterministic gates &#183; trust is earned &#183; evidence before &#8220;done&#8221; &#183; humans decide the severe</text>
+
+  <!-- LEFT: input -->
+  <rect x="28" y="230" width="152" height="86" rx="10" fill="#1f6feb" opacity="0.13" stroke="#1f6feb"/>
+  <text x="104" y="262" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="700">Your agents &amp;</text>
+  <text x="104" y="280" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="700">workflows</text>
+  <text x="104" y="300" text-anchor="middle" fill="#9db3d6" font-size="11">any task, any runner</text>
+
+  <!-- CORE container -->
+  <rect x="212" y="86" width="528" height="446" rx="14" fill="#10151c" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="476" y="112" text-anchor="middle" fill="#3fb950" font-size="15" font-weight="700">AgentGRIT governance core</text>
+
+  <!-- Router -->
+  <rect x="234" y="128" width="232" height="96" rx="10" fill="#161b22" stroke="#58a6ff"/>
+  <text x="350" y="152" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">Cost-first router</text>
+  <text x="350" y="172" text-anchor="middle" fill="#9db3d6" font-size="11">cheapest capable model,</text>
+  <text x="350" y="187" text-anchor="middle" fill="#9db3d6" font-size="11">with a stated reason</text>
+  <text x="350" y="207" text-anchor="middle" fill="#6e7681" font-size="10">router_v2 &#183; capability_map &#183; quota_fallback</text>
+
+  <!-- Gates -->
+  <rect x="486" y="128" width="232" height="96" rx="10" fill="#161b22" stroke="#f85149"/>
+  <text x="602" y="152" text-anchor="middle" fill="#f85149" font-size="14" font-weight="700">Deterministic gates</text>
+  <text x="602" y="172" text-anchor="middle" fill="#9db3d6" font-size="11">Law-0 blocks &#183; five pillars &#183;</text>
+  <text x="602" y="187" text-anchor="middle" fill="#9db3d6" font-size="11">research-quality floor</text>
+  <text x="602" y="207" text-anchor="middle" fill="#6e7681" font-size="10">no LLM inside the gate &#183; bylaws.py</text>
+
+  <!-- Deliberation -->
+  <rect x="234" y="240" width="232" height="96" rx="10" fill="#161b22" stroke="#a371f7"/>
+  <text x="350" y="264" text-anchor="middle" fill="#a371f7" font-size="14" font-weight="700">Deliberation</text>
+  <text x="350" y="284" text-anchor="middle" fill="#9db3d6" font-size="11">JR drafts &#8594; Manager reviews</text>
+  <text x="350" y="299" text-anchor="middle" fill="#9db3d6" font-size="11">&#8594; GM verdict</text>
+  <text x="350" y="319" text-anchor="middle" fill="#6e7681" font-size="10">local models &#183; fails safe to human</text>
+
+  <!-- Trust ladder -->
+  <rect x="486" y="240" width="232" height="96" rx="10" fill="#161b22" stroke="#3fb950"/>
+  <text x="602" y="264" text-anchor="middle" fill="#3fb950" font-size="14" font-weight="700">Trust ladder</text>
+  <text x="602" y="284" text-anchor="middle" fill="#9db3d6" font-size="11">UNTRUSTED &#8594; TRUSTED &#8594; AUTONOMOUS</text>
+  <text x="602" y="299" text-anchor="middle" fill="#9db3d6" font-size="11">earned by green evals, never assumed</text>
+  <text x="602" y="319" text-anchor="middle" fill="#6e7681" font-size="10">one red eval demotes &#183; loops carry ceilings</text>
+
+  <!-- Verification bar -->
+  <rect x="234" y="352" width="484" height="70" rx="10" fill="#1f6feb" opacity="0.13" stroke="#1f6feb"/>
+  <text x="476" y="381" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="700">Evidence-based verification</text>
+  <text x="476" y="401" text-anchor="middle" fill="#9db3d6" font-size="11">nothing is &#8220;done&#8221; without a tool result to point to &#183; results feed the trust ladder</text>
+
+  <!-- Doctrine/memory bar -->
+  <rect x="234" y="438" width="484" height="70" rx="10" fill="#161b22" stroke="#30363d"/>
+  <text x="476" y="465" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="700">Per-project doctrine &amp; memory</text>
+  <text x="476" y="485" text-anchor="middle" fill="#9db3d6" font-size="11">context_loader folds each project&#8217;s doctrine in &#183; personas sit on the constitution floor &#183; lessons accumulate</text>
+
+  <!-- RIGHT: models & tools -->
+  <rect x="770" y="128" width="182" height="140" rx="10" fill="#161b22" stroke="#30363d"/>
+  <text x="861" y="153" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="700">Models &amp; tools</text>
+  <text x="861" y="176" text-anchor="middle" fill="#9db3d6" font-size="11">local models first</text>
+  <text x="861" y="193" text-anchor="middle" fill="#9db3d6" font-size="11">cloud only when the</text>
+  <text x="861" y="208" text-anchor="middle" fill="#9db3d6" font-size="11">task earns it</text>
+  <text x="861" y="228" text-anchor="middle" fill="#9db3d6" font-size="11">your tools / MCP</text>
+  <text x="861" y="252" text-anchor="middle" fill="#6e7681" font-size="10">every call governed, none direct</text>
+
+  <!-- RIGHT: always-on -->
+  <rect x="770" y="352" width="182" height="120" rx="10" fill="#161b22" stroke="#30363d"/>
+  <text x="861" y="377" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="700">Always-on</text>
+  <text x="861" y="398" text-anchor="middle" fill="#9db3d6" font-size="11">Gardener &#8212; nightly checkers</text>
+  <text x="861" y="414" text-anchor="middle" fill="#9db3d6" font-size="11">HUD &#8212; live dashboard</text>
+  <text x="861" y="437" text-anchor="middle" fill="#6e7681" font-size="10">&#8220;a rule without a checker</text>
+  <text x="861" y="450" text-anchor="middle" fill="#6e7681" font-size="10">does not exist&#8221;</text>
+
+  <!-- OUTCOMES row -->
+  <rect x="40" y="556" width="250" height="60" rx="10" fill="#161b22" stroke="#3fb950"/>
+  <text x="165" y="581" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">DONE</text>
+  <text x="165" y="600" text-anchor="middle" fill="#9db3d6" font-size="11">with evidence to point to</text>
+
+  <rect x="320" y="556" width="250" height="60" rx="10" fill="#161b22" stroke="#f85149"/>
+  <text x="445" y="581" text-anchor="middle" fill="#f85149" font-size="13" font-weight="700">REFUSED</text>
+  <text x="445" y="600" text-anchor="middle" fill="#9db3d6" font-size="11">a complete, logged decision</text>
+
+  <rect x="600" y="556" width="220" height="60" rx="10" fill="#161b22" stroke="#d29922"/>
+  <text x="710" y="581" text-anchor="middle" fill="#d29922" font-size="13" font-weight="700">ESCALATED</text>
+  <text x="710" y="600" text-anchor="middle" fill="#9db3d6" font-size="11">brief + justification sent</text>
+
+  <rect x="848" y="556" width="104" height="60" rx="10" fill="#d29922" opacity="0.14" stroke="#d29922"/>
+  <text x="900" y="581" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="700">You</text>
+  <text x="900" y="600" text-anchor="middle" fill="#9db3d6" font-size="11">YES / NO</text>
+
+  <!-- Zeroth Law band -->
+  <rect x="28" y="636" width="924" height="42" rx="10" fill="#161b22" stroke="#30363d"/>
+  <text x="490" y="654" text-anchor="middle" fill="#d29922" font-size="12" font-weight="700">Zeroth Law (underneath everything)</text>
+  <text x="490" y="670" text-anchor="middle" fill="#7d8590" font-size="11">an agent must not, through silence or inaction, allow a foreseeable harm to go unreported</text>
+
+  <!-- arrows -->
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#6e7681"/></marker></defs>
+  <!-- input -> core -->
+  <line x1="180" y1="273" x2="210" y2="273" stroke="#6e7681" stroke-width="2" marker-end="url(#a)"/>
+  <!-- core <-> models -->
+  <line x1="742" y1="176" x2="768" y2="176" stroke="#6e7681" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="768" y1="206" x2="744" y2="206" stroke="#6e7681" stroke-width="2" marker-end="url(#a)"/>
+  <!-- core -> outcomes -->
+  <line x1="360" y1="533" x2="200" y2="554" stroke="#6e7681" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="476" y1="533" x2="450" y2="554" stroke="#6e7681" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="592" y1="533" x2="690" y2="554" stroke="#6e7681" stroke-width="2" marker-end="url(#a)"/>
+  <!-- escalated <-> you -->
+  <line x1="822" y1="586" x2="846" y2="586" stroke="#d29922" stroke-width="2" marker-end="url(#a)"/>
+  <!-- gardener/HUD watches core -->
+  <line x1="768" y1="400" x2="744" y2="400" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a)"/>
+</svg>

@@ -1,0 +1,1 @@
+[{"name":"gardener","at":"03:00","trust_ceiling":"medium","cost":"free","task":"run the memory-layer checkers; escalate HIGH findings"},{"name":"weekly-synthesis","at":"07:00","trust_ceiling":"low","cost":"local","task":"read the weeks captures and write weekly-synthesis/<year>-W<week>.md"}]
