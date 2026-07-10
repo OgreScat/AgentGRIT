@@ -151,7 +151,7 @@ def gate(
         except Exception as exc:  # noqa: BLE001
             notes.append(f"decision_record skipped: {exc}")
 
-    return GateResult(
+    result = GateResult(
         events=scored,
         assessment_verdict=verdict,
         assessment_score=score,
@@ -163,6 +163,13 @@ def gate(
         authorized_by=auth,
         notes=notes,
     )
+    # Opt-in domain brief for GET /brief (UI is read-only)
+    try:
+        from src.governance.brief_record import record_brief
+        record_brief(result.to_dict(), kind="observe")
+    except Exception:
+        pass
+    return result
 
 
 def render_report(result: GateResult) -> str:

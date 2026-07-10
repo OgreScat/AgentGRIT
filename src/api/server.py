@@ -371,6 +371,60 @@ async def console_data(limit: int = 40) -> dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# BRIEF — domain-user governed briefing (read-only; verified citations only)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/brief", response_class=HTMLResponse, tags=["Brief"])
+async def brief_page() -> HTMLResponse:
+    """Self-contained domain briefing UI. READ-ONLY — no POST/trigger paths."""
+    from .brief_page import BRIEF_HTML
+    return HTMLResponse(content=BRIEF_HTML, status_code=200)
+
+
+@app.get("/brief/data", tags=["Brief"])
+async def brief_data(
+    run: str = "latest",
+    profile: str = "generic",
+    list: bool = False,  # noqa: A002 — query flag for run index
+) -> dict[str, Any]:
+    """Normalized GovernedBrief JSON for the domain UI.
+
+    READ-ONLY: reads logs/briefs.jsonl (or falls back to decisions.jsonl).
+    Never executes agents. Fail-safe empty shell on missing files.
+    """
+    try:
+        from .brief_data import load_brief, list_briefs
+        from ..utils.logging import DEFAULT_LOG_DIR
+        if list:
+            return {
+                "read_only": True,
+                "runs": list_briefs(DEFAULT_LOG_DIR, limit=30),
+            }
+        return load_brief(run=run or "latest", log_dir=DEFAULT_LOG_DIR, profile=profile)
+    except Exception as e:
+        logger.warning("brief_data failed", error=str(e))
+        return {
+            "empty": True,
+            "read_only": True,
+            "question": "",
+            "disposition": "unknown",
+            "authorities": [],
+            "dropped_count": 0,
+            "contested": False,
+            "needs_judgment": [],
+            "confidence_band": "thin",
+            "profile": {
+                "id": "generic",
+                "title": "Governed brief",
+                "judgment_label": "Needs human judgment",
+                "disclaimer": "Advisory only. Verify before acting.",
+                "contested_label": "CONTESTED evidence",
+            },
+            "message": "brief load failed safe",
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════════════════════
 

@@ -612,7 +612,7 @@ class LegalResearchAgent:
         )
         text = briefing.render()
 
-        return {
+        result_envelope = {
             "status": status,
             "evidence": {
                 "task": question,
@@ -624,6 +624,7 @@ class LegalResearchAgent:
                 "contested": contested,
                 "autonomy_gate": auto.gate.value,
                 "decision_disposition": rec_disp,
+                "needs_attorney": needs,
                 "side_effect_escalations": side_escalations,
                 "provider": route_provider,
                 "cost": 0.0,
@@ -633,6 +634,13 @@ class LegalResearchAgent:
                 "public_record_only": True,
             },
         }
+        # Opt-in domain brief for GET /brief (UI is read-only)
+        try:
+            from ..governance.brief_record import record_brief
+            record_brief(result_envelope, kind="legal_research")
+        except Exception:
+            pass
+        return result_envelope
 
     def _record(
         self,

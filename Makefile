@@ -1,7 +1,7 @@
 # AgentGRIT Makefile
 # Run "make help" for available commands.
 
-.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find agent-steward agent-legal observe console
+.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find agent-steward agent-legal observe console brief
 
 # Python with PYTHONPATH set to project root (makes `from src.` work)
 # Use .venv (canonical virtualenv for this project)
@@ -38,6 +38,7 @@ help:
 	@echo "  make observe               GRIT Observe scored feeds (FEED=usgs_earthquakes optional)"
 	@echo "  make observe-fixture       Observe from offline fixtures (no network)"
 	@echo "  make console               Print URL for read-only operator console (API must be up)"
+	@echo "  make brief                 Print URL for domain governed-brief UI (read-only)"
 	@echo ""
 	@echo "Logs written to:"
 	@echo "  - logs/router.jsonl"
@@ -174,6 +175,15 @@ console:
 	@echo "  Data:  http://127.0.0.1:$${API_PORT:-8000}/console/data"
 	@echo "  Start the API if needed:  python -m src.main --api-only"
 	@echo "  This UI only GETs logs — it cannot spawn tasks or approve escalations."
+
+# Domain governed-brief UI (read-only; verified citations only)
+brief:
+	@echo "AgentGRIT governed brief (READ-ONLY · domain user surface)"
+	@echo "  Open:  http://127.0.0.1:$${API_PORT:-8000}/brief"
+	@echo "  Data:  http://127.0.0.1:$${API_PORT:-8000}/brief/data?run=latest&profile=generic"
+	@echo "  Legal profile sample:  .../brief/data?profile=legal"
+	@echo "  Start the API if needed:  python -m src.main --api-only"
+	@echo "  Agents write logs/briefs.jsonl; this UI only reads."
 
 .PHONY: hud
 hud:

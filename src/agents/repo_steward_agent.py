@@ -377,7 +377,7 @@ class RepoStewardAgent:
         )
         text = steward.render()
 
-        return {
+        result_envelope = {
             "status": "done",
             "evidence": {
                 "task": task,
@@ -393,6 +393,12 @@ class RepoStewardAgent:
                 "auto_edit": False,
             },
         }
+        try:
+            from ..governance.brief_record import record_brief
+            record_brief(result_envelope, kind="repo_steward")
+        except Exception:
+            pass
+        return result_envelope
 
 
 def main(argv: list[str] | None = None) -> int:
