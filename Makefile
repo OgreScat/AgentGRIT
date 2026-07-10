@@ -1,7 +1,7 @@
 # AgentGRIT Makefile
 # Run "make help" for available commands.
 
-.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find
+.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find agent-steward
 
 # Python with PYTHONPATH set to project root (makes `from src.` work)
 # Use .venv (canonical virtualenv for this project)
@@ -33,6 +33,7 @@ help:
 	@echo "  make debrief               Daily debrief from audit logs (optional NOTIFY=1)"
 	@echo "  make idea-project IDEA=... Scaffold projects/<slug> from an idea"
 	@echo "  make skills-find TASK=...  Propose local skills for a task"
+	@echo "  make agent-steward DIR=... Run Repo Steward advisor on DIR (default: .)"
 	@echo ""
 	@echo "Logs written to:"
 	@echo "  - logs/router.jsonl"
@@ -141,7 +142,10 @@ idea-project:
 skills-find:
 	@if [ -z "$(TASK)" ]; then echo 'Usage: make skills-find TASK="format python"'; exit 1; fi
 	@$(PYTHON) -m src.execution.skill_discovery "$(TASK)"
-	@echo "Run 'make stop-agents' to stop them."
+
+# Repo Steward — governed advisor (gardener + autonomy; no auto-edit)
+agent-steward:
+	@$(PYTHON) -m src.agents.repo_steward_agent "$(or $(DIR),.)"
 
 .PHONY: hud
 hud:

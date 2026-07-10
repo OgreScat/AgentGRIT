@@ -186,6 +186,10 @@ class AgentOrchestrator:
 
     AVAILABLE_AGENTS = {
         "example": "Template agent -- copy src/agents/example_agent.py to build your own",
+        "repo_steward": (
+            "Governed repo advisor: gardener.tend + skill discovery + autonomy-gated "
+            "remediation proposals (no auto-edit). CLI: python -m src.agents.repo_steward_agent"
+        ),
     }
 
     def __init__(
@@ -227,6 +231,11 @@ class AgentOrchestrator:
         if agent_name == "example":
             task = asyncio.create_task(
                 self._run_example(task_id),
+                name=f"agent_{agent_name}",
+            )
+        elif agent_name == "repo_steward":
+            task = asyncio.create_task(
+                self._run_repo_steward(task_id),
                 name=f"agent_{agent_name}",
             )
         else:
@@ -316,6 +325,72 @@ class AgentOrchestrator:
                 )
             except asyncio.TimeoutError:
                 pass  # Continue to next cycle
+
+    async def _run_repo_steward(self, task_id: str):
+        """Run the Repo Steward advisor on the current working tree.
+
+        Composes gardener + skill_discovery + autonomy + decision_record.
+        Never auto-edits. Failures are logged; the orchestrator keeps running.
+        """
+        from .agents.repo_steward_agent import RepoStewardAgent
+        from .planning.session_files import ProgressEntry
+        from pathlib import Path
+
+        agent = RepoStewardAgent()
+        target = Path.cwd()
+
+        cycle = 0
+        while not self.shutdown_event.is_set():
+            cycle += 1
+            self.session_manager.append_progress(task_id, ProgressEntry(
+                timestamp=datetime.utcnow(),
+                agent_id="repo_steward",
+                event_type="action",
+                summary=f"Starting steward cycle {cycle} on {target}",
+            ))
+
+            if self.dry_run:
+                console.print(
+                    f"[dim][DRY-RUN] repo_steward cycle {cycle} on {target}[/dim]"
+                )
+                await asyncio.sleep(60)
+                continue
+
+            try:
+                result = await agent.run_once(
+                    task=f"steward inspect {target}",
+                    target=target,
+                )
+                summary = (
+                    f"Cycle {cycle}: {result.get('status')} "
+                    f"findings={(result.get('evidence') or {}).get('finding_count')} "
+                    f"decision={(result.get('evidence') or {}).get('decision_disposition')}"
+                )
+                self.session_manager.append_progress(task_id, ProgressEntry(
+                    timestamp=datetime.utcnow(),
+                    agent_id="repo_steward",
+                    event_type="action",
+                    summary=summary[:200],
+                ))
+                report = (result.get("evidence") or {}).get("report") or ""
+                if report:
+                    console.print(report[:2000])
+            except Exception as e:
+                self.session_manager.append_progress(task_id, ProgressEntry(
+                    timestamp=datetime.utcnow(),
+                    agent_id="repo_steward",
+                    event_type="error",
+                    summary=f"Cycle {cycle} failed: {str(e)[:100]}",
+                ))
+                console.print(f"[red]repo_steward error: {e}[/red]")
+
+            try:
+                await asyncio.wait_for(
+                    self.shutdown_event.wait(),
+                    timeout=7200,
+                )
+            except asyncio.TimeoutError:
+                pass
 
 
 # =============================================================================

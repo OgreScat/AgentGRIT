@@ -17,6 +17,7 @@ integrations you are expected to wire to your own orchestrator.
 | Daily debrief (`src/agents/daily_debrief_agent.py`) | **Solid** | Deterministic rollup; **schedulable** via `make debrief` / `run_debrief_and_notify` (optional notify). Public repo has no GM cron — wire from your scheduler. |
 | Idea→project (`src/planning/idea_to_project.py`) | **Solid** | Offline scaffold (`projects/<slug>/`); CLI + `make idea-project`. |
 | Skill discovery (`src/execution/skill_discovery.py` + `skills/`) | **Solid** | Drop-in `skills/` catalog; `discover_local` + CLI; propose-only (no install). |
+| **Repo Steward** (`src/agents/repo_steward_agent.py`) | **Solid** | First turnkey agent: composes `gardener.tend` + `discover_local` + autonomy gate + one `decision_record` per run. **Governed advisor — never auto-edits.** Live via `make agent-steward`, CLI, and `python -m src.main --agent repo_steward`. Sample run: [EXAMPLE-REPO-STEWARD.md](EXAMPLE-REPO-STEWARD.md). |
 | Research layer (`src/execution/research.py`, `research_providers.py`) | **Solid** | Free-first, provider-agnostic, budget-governed. DuckDuckGo works keyless; add your own provider keys. |
 | Deliberation (`src/governance/deliberation.py`) | **Working** | JR→Manager local-model review; requires a local model (Ollama). Fails safe to escalate. |
 | Trust ladder (`src/governance/trust.py`) | **Working** | State machine present; promotion/demotion policy is conservative by default. |
