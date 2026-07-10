@@ -1,108 +1,65 @@
-# Example: Multi-screen Ops Console (read-only)
+# Example: Multi-screen Ops Console (read-only) · product-grade layout
 
-Local operations UI for the **whole GRIT runtime**. Governance is one module;
-screens cover tasks, research, models/cost, audit, and an overview KPI strip.
+Local operations UI for the whole GRIT runtime. **Never acts** — logs only.
 
-| Route | Method | Role |
-|---|---|---|
-| `/console` | GET | Self-contained multi-screen HTML (no CDN) |
-| `/console/data?screen=overview\|tasks\|…` | GET | Per-screen JSON rollup |
-| `/console/data` or `?screen=flat` | GET | Legacy flat rollup (back-compat) |
-
-**Never acts.** No POST under `/console*`. Approvals stay on CLI / Telegram.
+| Route | Method |
+|---|---|
+| `/console` | GET — multi-screen HTML |
+| `/console/data?screen=overview\|tasks\|…` | GET — per-screen rollup |
+| `/console/data?screen=flat` | GET — legacy flat rollup |
 
 ## Run
 
 ```bash
 python -m src.main --api-only
 make console
-# Open http://127.0.0.1:8000/console
+# http://127.0.0.1:8000/console
 ```
 
-## IA (information architecture)
+## Layout (v0.2.5 polish)
 
 ```
-┌─ AgentGRIT Ops · READ-ONLY · Approvals → CLI/Telegram ──────── live ─┐
-│ Overview │  KPI strip + recent activity timeline                      │
-│ Tasks    │  filterable decision table          │ Context rail        │
-│ Governance│ tabs: esc / bylaws / decisions / pillars (thin) │ (selected)│
-│ Research │ briefs · contested · observe snapshot                      │
-│ Models   │ provider bars · budget thr · why-this-model                │
-│ Audit    │ notifications · brief history · decisions · projects stub  │
-└──────────────────────────────────────────────────────────────────────┘
+┌─ AgentGRIT Ops · READ-ONLY · Approvals → CLI/Telegram ──── live · overview ─┐
+│ Overview │                                                                  │
+│ Tasks    │   ┌─ TODAY ──┐ ┌─ TRUST ──┐ ┌─ ROUTER ─┐ ┌─ LAST BLOCKED ─────┐ │
+│ Governance│  │ 12       │ │ ↑0 · ↓0  │ │ 13       │ │ rm -rf /            │ │
+│ Research │   │ decisions│ │ promo/dem│ │ routes   │ │ Law 0 …             │ │
+│ Models   │   │ esc: 2   │ │          │ │ cost Σ   │ │                     │ │
+│ Audit    │   └──────────┘ └──────────┘ └──────────┘ └─────────────────────┘ │
+│          │   Recent activity timeline…              │ Context               │
+│          │                                          │ TASK                  │
+│          │                                          │ DISPOSITION  [PROCEED]│
+│          │                                          │ ROUTE REASON          │
+│          │                                          │ ┌ mono log block ──┐  │
+│          │                                          │ │ cheapest capable │  │
+│          │                                          │ └──────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Screenshot-in-text per screen
+### Overview — mission-control cards
+Four grouped cards (**Today**, **Trust**, **Router totals**, **Last blocked**) with
+value hierarchy (large numbers / secondary sublines), then activity timeline.
 
-### Overview
-```
-KPIs: [decisions today: N] [pending esc: N] [router n] [est cost Σ]
-      [trust ↑] [trust ↓]  + disposition chips
-Last blocked: rm -rf / — Law 0
-Recent activity: decision/escalation timeline (newest first)
-```
+### Tasks — app-like filters
+Filter bar (disposition · provider) on a panel; clear selected row; table density
+kept high. Row → labeled context rail sections.
 
-### Tasks
-```
-filters: disposition ▾  provider ▾
-| When | Disp | Action | Provider | Bylaw | Evidence |
-| …    | PROCEED | format helpers | ollama | proceed | sufficient |
-Row click → right rail: route reason, bylaw, evidence, link to /brief
-```
+### Governance — tab chrome
+Selected tab: accent underline + filled background; unselected: quiet border.
+Pillars remain honestly thin when `pillars.jsonl` is absent.
 
-### Governance
-```
-tabs: [escalations] [bylaws] [decisions] [pillars]
-Note: Approvals are NOT available here — console is read-only.
-pillars: "No pillars.jsonl yet — intentionally thin."
-```
+### Research / Models / Audit
+Same screens; spacing/type scale only. Models “why this model” uses mono log
+blocks for routing reasons.
 
-### Research
-```
-[briefs N] [contested N] [weak/flagged N]
-Observe last run (if API has snapshot) · brief list with CONTESTED badges
-```
+## Data backing (unchanged)
 
-### Models & Cost
-```
-[routes] [local] [cloud] [est cost Σ]
-Budget thresholds from config: soft / escalate / hard
-Bars by provider · "Why this model" drawer from router.jsonl reason
-```
-
-### Audit
-```
-Notifications tail · brief history · recent decisions
-Projects: honest stub unless decisions carry project keys
-```
-
-## Sample: `GET /console/data?screen=overview` (shape)
-
-```json
-{
-  "read_only": true,
-  "screen": "overview",
-  "screens": ["overview","tasks","governance","research","models","audit"],
-  "kpis": {
-    "decisions_today": 12,
-    "pending_escalations": 1,
-    "router_total": 12,
-    "last_blocked": { "action": "rm -rf /", "reason": "…" }
-  },
-  "timeline": [ { "kind": "decision", "label": "proceed", "text": "…" } ]
-}
-```
-
-## Data backing (honest)
-
-| Screen | Strong logs | Thin / stub |
+| Screen | Strong | Thin |
 |---|---|---|
-| Overview | decisions, escalations, trust, router | active agents inferred from `authorized_by` |
-| Tasks | decisions (+ router recent) | — |
-| Governance | bylaws, escalations, decisions | **pillars** (no `pillars.jsonl`) |
-| Research | briefs.jsonl, decision evidence | observe needs in-memory snapshot |
-| Models | router.jsonl + config budget thresholds | — |
-| Audit | notifications, briefs, decisions | **projects** only if `project` field set |
+| Overview, Tasks, Models | JSONL | agent count inferred |
+| Governance | bylaws / esc / decisions | pillars (no log) |
+| Research | briefs | observe needs snapshot |
+| Audit | notifications / briefs | projects stub |
 
 ## Tests
 
