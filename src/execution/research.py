@@ -62,6 +62,16 @@ def _paid_today() -> int:
     return n
 
 
+def paid_calls_today() -> int:
+    """Public accessor for budget_governor / HUD -- paid research calls today."""
+    return _paid_today()
+
+
+def paid_call_cap() -> int:
+    """Daily paid-call cap (RESEARCH_MAX_PAID_PER_DAY, default 25)."""
+    return int(os.environ.get("RESEARCH_MAX_PAID_PER_DAY", "25"))
+
+
 def _record_paid(provider: str) -> None:
     try:
         _BUDGET.parent.mkdir(parents=True, exist_ok=True)
@@ -228,16 +238,45 @@ def culminate(query: str, action: str = "", high_stakes: bool = True,
             verdict = type("V", (), {"value": "insufficient"})()
             score = 0.0
             require_human = high_stakes and not reversible
+            reason = "assess unavailable; fail-safe insufficient"
         a = _A()
 
-    if getattr(a, "require_human", False) is False and a.verdict.value == "sufficient":
-        return {"ok": True, "sufficient": True, "provider": free.get("provider"),
-                "content": free.get("content"), "quality": a.score, "query": query}
+    # Decision record -- every culmination path leaves an auditable why.
+    # Fail-safe: never let audit I/O break research. disposition derives from
+    # evidence alone (no bylaw object here).
+    rec_disposition = None
+    try:
+        from src.governance.decision_record import record as _record_decision
+        rec = _record_decision(
+            action=action or query,
+            evidence=a,
+            authorized_by="research.culminate",
+            project=None,
+        )
+        rec_disposition = getattr(getattr(rec, "disposition", None), "value", None)
+    except Exception:
+        pass
 
-    # Still weak -> culmination prompt for the human's premium tool.
+    verdict_val = getattr(getattr(a, "verdict", None), "value", None) or str(
+        getattr(a, "verdict", "")
+    )
+    if getattr(a, "require_human", False) is False and verdict_val == "sufficient":
+        out = {"ok": True, "sufficient": True, "provider": free.get("provider"),
+               "content": free.get("content"), "quality": a.score, "query": query,
+               "verdict": verdict_val}
+        if rec_disposition:
+            out["decision_disposition"] = rec_disposition
+        return out
+
+    # CONTESTED / INSUFFICIENT / WEAK high-stakes -> culmination prompt.
     found = (free.get("content") or "nothing conclusive from free sources")[:300]
+    why = verdict_val
+    if verdict_val == "contested":
+        gap = "sources conflict -- do not act until resolved"
+    else:
+        gap = "evidence too weak to act on"
     prompt = (f"AgentGRIT reviewed free sources for: {action or query}. "
-              f"Found: {found}. This is too weak to act on ({a.verdict.value}, "
+              f"Found: {found}. {gap} ({why}, "
               f"quality {a.score:.2f}). Please run this in your premium research tool and "
               f"paste the answer back: \"{query}\".")
     try:
@@ -246,13 +285,17 @@ def culminate(query: str, action: str = "", high_stakes: bool = True,
         with _RREQ.open("a") as f:
             f.write(json.dumps({"ts": datetime.now().isoformat(), "query": query,
                                 "tier": "gm", "status": "pending",
-                                "culmination": True}) + "\n")
+                                "culmination": True,
+                                "verdict": why}) + "\n")
         notify(f"[Research · GM · AgentGRIT] {prompt}")
     except Exception:
         pass
-    return {"ok": False, "pending_human": True, "sufficient": False,
-            "verdict": a.verdict.value, "quality": a.score,
-            "culmination_prompt": prompt, "query": query}
+    out = {"ok": False, "pending_human": True, "sufficient": False,
+           "verdict": why, "quality": a.score,
+           "culmination_prompt": prompt, "query": query}
+    if rec_disposition:
+        out["decision_disposition"] = rec_disposition
+    return out
 
 
 if __name__ == "__main__":

@@ -137,6 +137,41 @@ def _downgrade(plan: WorkflowPlan) -> tuple[WorkflowPlan, float]:
     return new_plan, round(saved, 2)
 
 
+def _maybe_record(plan: WorkflowPlan, decision: GovernedDecision, cfg: GovernorConfig) -> None:
+    """Append a decision record for BLOCK/ESCALATE only (high-signal). Fail-safe."""
+    if decision.verdict not in (Verdict.BLOCK, Verdict.ESCALATE):
+        return
+    # Do not pollute production logs/ during unit tests (pytest sets this env).
+    import os
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        return
+    try:
+        from src.governance.decision_record import record
+        from src.governance.bylaws import BylawResult, BylawAction
+
+        bylaw_action = (
+            BylawAction.BLOCK if decision.verdict is Verdict.BLOCK
+            else BylawAction.ESCALATE
+        )
+        reason = "; ".join(decision.reasons) or decision.verdict.value
+        # Minimal routing stand-in: provider unknown at plan stage; cost is real.
+        class _Route:
+            provider = None
+            category = None
+            confidence = None
+            estimated_cost = plan.governed_cost
+            reason = f"workflow plan cost ${plan.governed_cost:.2f}"
+
+        record(
+            action=plan.task[:200],
+            routing=_Route(),
+            bylaw=BylawResult(action=bylaw_action, reason=reason),
+            authorized_by=f"cost_governor:trust={cfg.trust_level}",
+        )
+    except Exception:
+        pass
+
+
 def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> GovernedDecision:
     cfg = config or GovernorConfig()
     plan = _normalize_order(plan)
@@ -151,14 +186,19 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
     downgraded, savings = _downgrade(plan)
     has_downgrade = savings > 0.005
 
+    def _done(verdict: Verdict, plan_out: WorkflowPlan, down, reas, sav) -> GovernedDecision:
+        d = GovernedDecision(verdict, plan_out, down, reas, sav)
+        _maybe_record(plan_out, d, cfg)
+        return d
+
     # 1. Hard ceiling → BLOCK.
     if cost > cfg.hard_ceiling:
         reasons.append(
             f"Estimated ${cost:.2f} exceeds hard ceiling ${cfg.hard_ceiling:.2f}. "
             f"Scope to a slice and re-plan."
         )
-        return GovernedDecision(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
-                                reasons, savings)
+        return _done(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
+                     reasons, savings)
 
     # 2. Unjustified furnace → BLOCK. Many agents, but none on hard kinds.
     justified = any(s.kind in HARD_KINDS for s in plan.stages)
@@ -167,8 +207,8 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
             f"{total_agents} agents planned with no genuinely-hard stage to justify "
             f"the spend. This is a furnace. Re-scope or split into smaller runs."
         )
-        return GovernedDecision(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
-                                reasons, savings)
+        return _done(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
+                     reasons, savings)
 
     # 3. Over escalate budget → ESCALATE (unless AUTONOMOUS trust).
     if cost > cfg.escalate_budget:
@@ -184,11 +224,11 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
             )
         if cfg.trust_level == "AUTONOMOUS":
             reasons.append("Trust=AUTONOMOUS → auto-approved despite cost.")
-            return GovernedDecision(Verdict.DOWNGRADE if has_downgrade else Verdict.ALLOW,
-                                    plan, downgraded if has_downgrade else None,
-                                    reasons, savings)
-        return GovernedDecision(Verdict.ESCALATE, plan,
-                                downgraded if has_downgrade else None, reasons, savings)
+            return _done(Verdict.DOWNGRADE if has_downgrade else Verdict.ALLOW,
+                         plan, downgraded if has_downgrade else None,
+                         reasons, savings)
+        return _done(Verdict.ESCALATE, plan,
+                     downgraded if has_downgrade else None, reasons, savings)
 
     # 4. Over soft budget but under escalate → DOWNGRADE offer.
     if cost > cfg.soft_budget and has_downgrade:
@@ -196,17 +236,17 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
             f"Estimated ${cost:.2f} over soft budget ${cfg.soft_budget:.2f}. "
             f"Offered downgrade → ${downgraded.governed_cost:.2f} (saves ${savings:.2f})."
         )
-        return GovernedDecision(Verdict.DOWNGRADE, plan, downgraded, reasons, savings)
+        return _done(Verdict.DOWNGRADE, plan, downgraded, reasons, savings)
 
     # 5. Otherwise ALLOW. Still surface a downgrade if it's meaningfully cheaper.
     if has_downgrade:
         reasons.append(
             f"Within budget. Optional downgrade available (saves ${savings:.2f})."
         )
-        return GovernedDecision(Verdict.ALLOW, plan, downgraded, reasons, savings)
+        return _done(Verdict.ALLOW, plan, downgraded, reasons, savings)
 
     reasons.append(f"Within budget at ${cost:.2f}. No concerns.")
-    return GovernedDecision(Verdict.ALLOW, plan, None, reasons, savings)
+    return _done(Verdict.ALLOW, plan, None, reasons, savings)
 
 
 def govern_task(task: str, config: GovernorConfig | None = None) -> GovernedDecision:

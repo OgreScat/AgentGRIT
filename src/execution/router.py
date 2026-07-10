@@ -600,15 +600,52 @@ class LLMRouter:
             context={"estimated_cost": decision.estimated_cost},
             action_type="api_call",
         )
-        if bylaw_result.action == BylawAction.BLOCK:
+
+        # Decision record + autonomy posture (fail-safe; never break execute).
+        # cheaper_alternatives uses the live MODEL_COSTS table in this module.
+        rec_disposition = None
+        autonomy_gate = None
+        try:
+            from src.governance.decision_record import (
+                record as _record_decision,
+                cheaper_alternatives,
+            )
+            from src.governance.autonomy import decide as autonomy_decide
+            from src.governance.trust import get_trust_manager
+
+            trust_level = get_trust_manager().get_trust_level(category.value)
+            auto = autonomy_decide(
+                risk="low",  # router.execute is model dispatch; bylaws carry severity
+                trust=trust_level,
+                bylaw_action=bylaw_result.action,
+            )
+            autonomy_gate = auto.gate.value
+            rec = _record_decision(
+                action=task[:200],
+                routing=decision,
+                bylaw=bylaw_result,
+                alternatives=cheaper_alternatives(decision.provider, MODEL_COSTS),
+                authorized_by=f"router:{auto.gate.value}",
+            )
+            rec_disposition = rec.disposition.value
+        except Exception:
+            pass
+
+        # Stop on BLOCK and ESCALATE (should_proceed is False for both).
+        # Prior bug: only BLOCK returned early; ESCALATE still executed.
+        if not bylaw_result.should_proceed:
             return {
                 "provider": "bylaws",
-                "response": f"Blocked by bylaws: {bylaw_result.reason}",
+                "response": (
+                    f"{bylaw_result.action.value} by bylaws: {bylaw_result.reason}"
+                ),
                 "tokens": 0,
                 "cost": 0.0,
                 "category": category.value,
                 "routing_decision": decision.to_log_entry(),
                 "bylaw_action": bylaw_result.action.value,
+                "decision_disposition": rec_disposition,
+                "autonomy_gate": autonomy_gate,
             }
 
         # Local model gets the live AgentGRIT identity prompt prepended —
@@ -654,14 +691,20 @@ class LLMRouter:
         # Record usage
         self.usage.record_usage(provider, tokens, cost)
 
-        return {
+        result = {
             "provider": provider,
             "response": response,
             "tokens": tokens,
             "cost": cost,
             "category": category.value,
             "routing_decision": decision.to_log_entry(),  # Evidence bundle
+            "bylaw_action": bylaw_result.action.value,
         }
+        if rec_disposition is not None:
+            result["decision_disposition"] = rec_disposition
+        if autonomy_gate is not None:
+            result["autonomy_gate"] = autonomy_gate
+        return result
     
     async def _call_ollama(self, prompt: str) -> tuple[str, int]:
         """Call local Ollama. FREE and unlimited."""
