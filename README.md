@@ -249,7 +249,8 @@ release, so nothing stays locked forever.
 ## Acknowledgments
 
 - Inspired by Asimov's Laws of Robotics.
-- Built on Claude by Anthropic.
+- Runs on your models of choice — local Ollama first, with Claude, Grok,
+  Perplexity, and others as governed cloud tiers.
 
 *AgentGRIT: a governance layer for agents, not a business in a box. Bring your own projects.*
 

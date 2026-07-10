@@ -35,11 +35,16 @@ _BUDGET = Path(__file__).resolve().parents[2] / "logs" / "research_budget.jsonl"
 _RREQ = Path(__file__).resolve().parents[2] / "logs" / "research_requests.jsonl"
 
 RESEARCH_TIERS = {"analyst", "manager", "developer", "gm", "grandmaster", "admin"}
-_PAID = {"perplexity", "brave", "grok"}
+_PAID = {"perplexity", "brave", "grok", "google"}  # google CSE is metered too
 
 
 def _order() -> list[str]:
-    raw = os.environ.get("RESEARCH_ORDER", "cache,duckduckgo,brave,grok,perplexity")
+    # google is in the default order for consistency with brave/grok, but like
+    # them it no-ops via available()=False unless its CSE keys are set, so it
+    # never runs (or counts against the paid cap) for keyless users.
+    raw = os.environ.get(
+        "RESEARCH_ORDER", "cache,duckduckgo,brave,google,grok,perplexity"
+    )
     return [x.strip() for x in raw.split(",") if x.strip()]
 
 

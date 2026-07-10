@@ -11,6 +11,7 @@ import asyncio
 import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request, Header
@@ -179,10 +180,18 @@ async def system_status() -> dict[str, Any]:
     trust_manager = get_trust_manager()
     stats = trust_manager.get_statistics()
     
+    # Research knowledge cache lives on disk (logs/knowledge.jsonl); count it
+    # honestly instead of referencing an in-memory cache that does not exist.
+    kb = Path(__file__).resolve().parents[2] / "logs" / "knowledge.jsonl"
+    try:
+        cache_entries = sum(1 for _ in kb.open()) if kb.exists() else 0
+    except Exception:
+        cache_entries = 0
+
     return {
         "version": "2.0.0",
         "trust_statistics": stats,
-        "cache_entries": len(_content_cache),
+        "cache_entries": cache_entries,
         "timestamp": datetime.utcnow().isoformat() + "Z",
     }
 

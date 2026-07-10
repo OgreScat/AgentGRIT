@@ -105,7 +105,7 @@ def build_llm_configs() -> dict[LLMProvider, LLMConfig]:
         )
 
     # Grok (Priority 3 - Premium)
-    grok_key = getattr(settings, 'grok_api_key', None)
+    grok_key = getattr(settings, 'grok_api_key', None) or getattr(settings, 'xai_api_key', None)
     if grok_key:
         configs[LLMProvider.GROK] = LLMConfig(
             provider=LLMProvider.GROK,

@@ -4,16 +4,17 @@ AgentGRIT 2.4 - Multi-LLM Router (Capability-Based)
 THE CORE PURPOSE: Maximize utility while minimizing expensive API usage.
 
 Your situation:
-- Claude (Opus 4.5): usage-capped per session and per week (reset day is configurable)
-- Perplexity Pro: $5/month free tier, multiple models available
-- Grok 4.1: Available via X/Twitter
+- Claude: usage-capped per session and per week (reset day is configurable)
+- Perplexity API (Sonar): pay-as-you-go, ~$0.20-$1.00/1M tokens by tier;
+  API credits are separate from the Pro consumer subscription
+- Grok 4.x (xAI API): frontier agentic tier at competitive per-task cost
 - Ollama Local: Free, unlimited, but limited capability
 
 Strategy:
-1. RESEARCH tasks → Perplexity (free $5/month, has web search)
+1. RESEARCH tasks → Perplexity Sonar (cheap grounded search with citations)
 2. SIMPLE CODING tasks → Ollama local (free, unlimited)
 3. COMPLEX REASONING → Claude only when absolutely necessary
-4. REAL-TIME/X context → Grok 4.1
+4. REAL-TIME/X context → Grok (xAI firehose access Perplexity lacks)
 
 This router decides WHICH model to use based on task type.
 Claude should only be called for truly complex architectural decisions.
@@ -53,7 +54,7 @@ class TaskCategory(Enum):
     BOILERPLATE = "boilerplate"          # Generate boilerplate code
     EXPLANATION = "explanation"           # Explain code/concepts
     
-    # Perplexity handles these ($5/month free tier)
+    # Perplexity handles these (cheap Sonar API tier)
     RESEARCH = "research"                 # Web research, lookups
     CURRENT_EVENTS = "current_events"     # News, recent info
     DOCUMENTATION = "documentation"       # API docs, library info
@@ -72,10 +73,12 @@ class TaskCategory(Enum):
 
 
 # Cost estimates per 1K tokens (approximate)
+# Approximate $/1K tokens (blended in/out), July 2026 — review periodically.
+# These are routing PRIORITIES expressed as estimates, not live metered billing.
 MODEL_COSTS = {
-    "ollama": 0.00,           # Free
-    "perplexity": 0.001,      # Very cheap with free tier
-    "grok": 0.002,            # Cheap
+    "ollama": 0.00,           # Free — local, unlimited
+    "perplexity": 0.001,      # Sonar tier (~$0.20-$1.00/1M by size), grounded search
+    "grok": 0.002,            # Grok 4.x agentic tier (~$2/1M in) — strong cost/perf
     "claude-haiku": 0.00025,  # If we must use Claude, use Haiku
     "claude-sonnet": 0.003,   # Medium cost
     "claude-opus": 0.015,     # Expensive - avoid when possible
@@ -682,7 +685,7 @@ class LLMRouter:
             return f"Ollama error: {e}", 0
     
     async def _call_perplexity(self, prompt: str) -> tuple[str, int]:
-        """Call Perplexity API. Uses your $5/month free tier."""
+        """Call Perplexity Sonar API (pay-as-you-go credits, budget-gated)."""
         api_key = self.config.get("perplexity_api_key")
         if not api_key:
             return "Perplexity API key not configured", 0
@@ -696,7 +699,10 @@ class LLMRouter:
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "llama-3.1-sonar-small-128k-online",  # Cheapest with search
+                        # Override with PPLX_MODEL as Perplexity renames Sonar tiers.
+                        "model": os.environ.get(
+                            "PPLX_MODEL", "llama-3.1-sonar-small-128k-online"
+                        ),
                         "messages": [{"role": "user", "content": prompt}],
                     },
                     timeout=60.0,
@@ -723,7 +729,8 @@ class LLMRouter:
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": "grok-beta",
+                        # Override with GROK_MODEL as xAI ships new versions.
+                        "model": os.environ.get("GROK_MODEL", "grok-beta"),
                         "messages": [{"role": "user", "content": prompt}],
                     },
                     timeout=60.0,

@@ -30,6 +30,9 @@ from enum import Enum
 _DEFAULT_TIER = {
     "human": 1.00,
     "grok": 0.88, "perplexity": 0.85,
+    "google": 0.72,   # Google CSE — broad index; mid-trust due to documented
+                      # filtering/ranking bias on some topics. Never a solo
+                      # authorizer for irreversible actions (bar is 0.82).
     "brave": 0.68,
     "duckduckgo": 0.48,
     "cache": 0.58,

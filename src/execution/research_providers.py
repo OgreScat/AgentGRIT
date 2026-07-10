@@ -253,7 +253,51 @@ class BrowserSessionProvider(ResearchProvider):
             "docs/RESEARCH-KEYLESS.md.")
 
 
+class GoogleProvider(ResearchProvider):
+    """Google Custom Search JSON API — broad index, mid-trust (tier 0.72).
+
+    Requires GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID (create at cse.google.com).
+    Free tier: 100 queries/day; paid: ~$5 per 1,000 queries.
+    Breadth is the value; known ranking/filtering bias on some topics is why
+    the trust tier sits below Perplexity/Grok — a lone Google result cannot
+    authorize an irreversible action (see research_quality.py).
+    """
+
+    name = "google"
+    cost_per_call = 0.005
+
+    def available(self) -> bool:
+        return bool(_setting("GOOGLE_CSE_API_KEY") and _setting("GOOGLE_CSE_ID"))
+
+    def search(self, query: str, timeout: float = 30.0) -> ResearchResult | None:
+        api_key = _setting("GOOGLE_CSE_API_KEY")
+        cse_id = _setting("GOOGLE_CSE_ID")
+        if not api_key or not cse_id:
+            return None
+        try:
+            url = (
+                "https://www.googleapis.com/customsearch/v1"
+                f"?key={urllib.parse.quote(api_key)}&cx={urllib.parse.quote(cse_id)}"
+                f"&q={urllib.parse.quote(query)}&num=5"
+            )
+            req = urllib.request.Request(url, headers={"User-Agent": "AgentGRIT/2.0"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = json.loads(resp.read())
+            items = data.get("items", [])
+            if not items:
+                return None
+            content = "\n\n".join(
+                f"{it.get('title', '')}: {it.get('snippet', '')}" for it in items[:5]
+            )
+            urls = [it.get("link", "") for it in items[:5]]
+            return ResearchResult(query=query, content=content, provider=self.name,
+                                  urls=urls, cost_estimate=self.cost_per_call)
+        except Exception:
+            return None
+
+
 # Cost-ordered registry: free providers first.
 def all_providers() -> list[ResearchProvider]:
     return [CacheProvider(), DuckDuckGoProvider(),
-            PerplexityProvider(), BraveProvider(), GrokProvider()]
+            PerplexityProvider(), BraveProvider(),
+            GoogleProvider(), GrokProvider()]

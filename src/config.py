@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # =========================================================================
     anthropic_api_key: str = Field(default="", description="Anthropic API key")
     pplx_api_key: str = Field(default="", description="Perplexity API key (research/web-search tier)")
+    grok_api_key: str = Field(default="", description="xAI Grok API key (agentic/real-time tier)")
+    xai_api_key: str = Field(default="", description="xAI key alias; used if grok_api_key is unset")
 
     # Ollama (cost-first default -- FREE and unlimited)
     ollama_base_url: str = Field(default="http://localhost:11434")
