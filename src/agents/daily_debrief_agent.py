@@ -74,11 +74,12 @@ def _for_day(entries: list[dict], day: str) -> list[dict]:
     matched = []
     for e in entries:
         d = _entry_day(e)
-        if d is None or d == day:
-            # Include undated lines only when they are the sole signal would
-            # inflate counts -- skip undated for debrief accuracy.
-            if d == day:
-                matched.append(e)
+        # Undated lines are skipped: without a date we cannot attribute them to
+        # `day`, and including them would inflate counts. Records written by
+        # decision_record always carry `ts`, so this only drops entries from
+        # loggers that omit a timestamp.
+        if d == day:
+            matched.append(e)
     return matched
 
 

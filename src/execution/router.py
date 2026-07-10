@@ -72,16 +72,19 @@ class TaskCategory(Enum):
     CREATIVE_WRITING = "creative"         # High-quality prose
 
 
-# Cost estimates per 1K tokens (approximate)
-# Approximate $/1K tokens (blended in/out), July 2026 — review periodically.
-# These are routing PRIORITIES expressed as estimates, not live metered billing.
+# Approximate blended $/1K tokens (input+output averaged), July 2026 — review
+# periodically. These are estimates for billing display + cheaper_alternatives,
+# NOT provider selection (routing is capability-first). Kept in sync with
+# workflow/planner.MODEL_COST_PER_1K by tests/test_cost_tables_consistent.py.
+# Values are deliberately the CONSERVATIVE (higher) estimate: a cost guard that
+# over-estimates is safe; one that under-estimates lets a furnace run through.
 MODEL_COSTS = {
     "ollama": 0.00,           # Free — local, unlimited
     "perplexity": 0.001,      # Sonar tier (~$0.20-$1.00/1M by size), grounded search
-    "grok": 0.002,            # Grok 4.x agentic tier (~$2/1M in) — strong cost/perf
-    "claude-haiku": 0.00025,  # If we must use Claude, use Haiku
-    "claude-sonnet": 0.003,   # Medium cost
-    "claude-opus": 0.015,     # Expensive - avoid when possible
+    "grok": 0.002,            # Grok 4.x agentic tier — strong cost/perf
+    "claude-haiku": 0.0008,   # If we must use Claude, use Haiku
+    "claude-sonnet": 0.006,   # Medium cost
+    "claude-opus": 0.030,     # Expensive - avoid when possible
 }
 
 

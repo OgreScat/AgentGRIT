@@ -106,7 +106,7 @@ class DecisionRecord:
             "chosen_provider": self.chosen_provider,
             "category": self.category,
             "confidence": self.confidence,
-            "estimated_cost_usd_per_1k": self.estimated_cost,
+            "estimated_cost_usd": self.estimated_cost,   # task/plan total, not per-1k
             "route_reason": self.route_reason,
             "alternatives_considered": self.alternatives,
             "bylaw_action": self.bylaw_action,

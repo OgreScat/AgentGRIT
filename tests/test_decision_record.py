@@ -123,5 +123,5 @@ def test_to_entry_has_no_invented_fields():
     entry = rec.to_entry()
     # routing was not supplied -> those fields are honestly None, not fabricated
     assert entry["chosen_provider"] is None
-    assert entry["estimated_cost_usd_per_1k"] is None
+    assert entry["estimated_cost_usd"] is None
     assert entry["disposition"] == "proceed"
