@@ -1,0 +1,28 @@
+{
+  "articles": [
+    {
+      "url": "https://www.reuters.com/world/example-earthquake-coverage",
+      "title": "Major earthquake strikes coastal region, officials respond",
+      "seendate": "20260710T120000Z",
+      "domain": "reuters.com",
+      "language": "English",
+      "sourcecountry": "United States"
+    },
+    {
+      "url": "https://www.bbc.com/news/example-quake",
+      "title": "Earthquake magnitude 6.5 reported near island chain",
+      "seendate": "20260710T110000Z",
+      "domain": "bbc.com",
+      "language": "English",
+      "sourcecountry": "United Kingdom"
+    },
+    {
+      "url": "https://apnews.com/article/example-pacific-tremor",
+      "title": "Pacific tremor rattles region as emergency crews mobilize",
+      "seendate": "20260709T090000Z",
+      "domain": "apnews.com",
+      "language": "English",
+      "sourcecountry": "United States"
+    }
+  ]
+}

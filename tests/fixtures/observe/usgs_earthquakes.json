@@ -1,0 +1,141 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "generated": 1783710004000,
+    "url": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.geojson",
+    "title": "USGS Significant Earthquakes, Past Month",
+    "status": 200,
+    "api": "2.7.0",
+    "count": 15
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 3.8,
+        "place": "2 km E of Oak Harbor, Washington",
+        "time": 1782974147600,
+        "updated": 1783462459887,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/uw714040221",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/uw714040221.geojson",
+        "felt": 2027,
+        "cdi": 3.8,
+        "mmi": 3.322,
+        "alert": null,
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 602,
+        "net": "uw",
+        "code": "714040221",
+        "ids": ",uw714040221,us6000t9kz,",
+        "sources": ",uw,us,",
+        "types": ",dyfi,moment-tensor,origin,phase-data,shakemap,",
+        "nst": 124,
+        "dmin": 0.01781,
+        "rms": 0.17,
+        "gap": 15,
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 3.8 - 2 km E of Oak Harbor, Washington"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.6065,
+          48.2888333333333,
+          25.38
+        ]
+      },
+      "id": "uw714040221"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 5.3,
+        "place": "272 km SSE of Dunhuang, China",
+        "time": 1782863094898,
+        "updated": 1783471092040,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us6000t9bg",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/us6000t9bg.geojson",
+        "felt": null,
+        "cdi": null,
+        "mmi": 6.493,
+        "alert": "yellow",
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 650,
+        "net": "us",
+        "code": "6000t9bg",
+        "ids": ",us6000t9bg,",
+        "sources": ",us,",
+        "types": ",ground-failure,losspager,origin,phase-data,shakemap,",
+        "nst": 94,
+        "dmin": 6.886,
+        "rms": 0.73,
+        "gap": 35,
+        "magType": "mww",
+        "type": "earthquake",
+        "title": "M 5.3 - 272 km SSE of Dunhuang, China"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          95.4116,
+          37.7819,
+          10
+        ]
+      },
+      "id": "us6000t9bg"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "mag": 4.2,
+        "place": "27 km WNW of Hope, Alaska",
+        "time": 1782537952321,
+        "updated": 1782869271122,
+        "tz": null,
+        "url": "https://earthquake.usgs.gov/earthquakes/eventpage/aka2026mpitdk",
+        "detail": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/detail/aka2026mpitdk.geojson",
+        "felt": 983,
+        "cdi": 4.1,
+        "mmi": 3.609,
+        "alert": "green",
+        "status": "reviewed",
+        "tsunami": 0,
+        "sig": 674,
+        "net": "ak",
+        "code": "a2026mpitdk",
+        "ids": ",aka2026mpitdk,us6000t8lq,atth9z34,",
+        "sources": ",ak,us,at,",
+        "types": ",dyfi,losspager,moment-tensor,origin,phase-data,shakemap,",
+        "nst": 208,
+        "dmin": 0.2,
+        "rms": 0.9,
+        "gap": 35,
+        "magType": "ml",
+        "type": "earthquake",
+        "title": "M 4.2 - 27 km WNW of Hope, Alaska"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -150.125,
+          60.989,
+          47.9
+        ]
+      },
+      "id": "aka2026mpitdk"
+    }
+  ],
+  "bbox": [
+    -150.125,
+    -1.1245,
+    5,
+    160.5652,
+    60.989,
+    84
+  ]
+}

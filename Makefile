@@ -1,7 +1,7 @@
 # AgentGRIT Makefile
 # Run "make help" for available commands.
 
-.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find agent-steward
+.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find agent-steward observe
 
 # Python with PYTHONPATH set to project root (makes `from src.` work)
 # Use .venv (canonical virtualenv for this project)
@@ -34,6 +34,8 @@ help:
 	@echo "  make idea-project IDEA=... Scaffold projects/<slug> from an idea"
 	@echo "  make skills-find TASK=...  Propose local skills for a task"
 	@echo "  make agent-steward DIR=... Run Repo Steward advisor on DIR (default: .)"
+	@echo "  make observe               GRIT Observe scored feeds (FEED=usgs_earthquakes optional)"
+	@echo "  make observe-fixture       Observe from offline fixtures (no network)"
 	@echo ""
 	@echo "Logs written to:"
 	@echo "  - logs/router.jsonl"
@@ -146,6 +148,17 @@ skills-find:
 # Repo Steward — governed advisor (gardener + autonomy; no auto-edit)
 agent-steward:
 	@$(PYTHON) -m src.agents.repo_steward_agent "$(or $(DIR),.)"
+
+# GRIT Observe — keyless feeds → fuse → evidence gate (no action)
+observe:
+	@if [ -n "$(FEED)" ]; then \
+		$(PYTHON) -m src.observe.run --feed "$(FEED)"; \
+	else \
+		$(PYTHON) -m src.observe.run; \
+	fi
+
+observe-fixture:
+	@$(PYTHON) -m src.observe.run --fixture-dir tests/fixtures/observe
 
 .PHONY: hud
 hud:

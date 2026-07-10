@@ -267,6 +267,62 @@ async def get_bylaw_suggestions() -> dict[str, Any]:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# OBSERVE — scored live-data view (auth same as rest of API)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Last fused+gated snapshot (in-process). Observation never acts.
+_last_observe: dict[str, Any] | None = None
+
+
+@app.get("/observe/view", tags=["Observe"])
+async def observe_view(
+    feed: str | None = None,
+    refresh: bool = False,
+    fixture: bool = False,
+) -> dict[str, Any]:
+    """Return fused, evidence-scored observations.
+
+    - refresh=true: re-fetch (live keyless feeds, or fixtures if fixture=true)
+    - default: return last snapshot; if none, run once offline-safe on empty
+
+    Does not execute actions. Auth: same fail-closed API key gate as other routes.
+    """
+    global _last_observe
+    try:
+        from src.observe.run import run_observe
+        from pathlib import Path
+
+        if refresh or _last_observe is None:
+            fixture_dir = None
+            if fixture:
+                fixture_dir = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "observe"
+            result, _text = run_observe(
+                feed=feed,
+                fixture_dir=fixture_dir,
+                record_decision=True,
+            )
+            _last_observe = {
+                "ts": datetime.utcnow().isoformat() + "Z",
+                "feed": feed or "all",
+                "result": result.to_dict(),
+            }
+        return _last_observe or {
+            "ts": datetime.utcnow().isoformat() + "Z",
+            "feed": feed or "all",
+            "result": {"events": [], "assessment_verdict": "insufficient"},
+        }
+    except Exception as e:
+        logger.warning("observe_view failed", error=str(e))
+        raise HTTPException(status_code=500, detail="observe failed safe") from e
+
+
+def _set_last_observe_for_tests(payload: dict[str, Any] | None) -> None:
+    """Test helper — inject a snapshot without network."""
+    global _last_observe
+    _last_observe = payload
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ENTRYPOINT
 # ═══════════════════════════════════════════════════════════════════════════════
 
