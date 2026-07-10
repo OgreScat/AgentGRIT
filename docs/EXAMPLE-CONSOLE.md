@@ -1,107 +1,108 @@
-# Example: Operator Console (read-only)
+# Example: Multi-screen Ops Console (read-only)
 
-Local web dashboard that **renders JSONL the runtime already writes**. It never
-triggers agents, approvals, or observes-with-side-effects beyond reading logs
-and an in-memory observe snapshot.
+Local operations UI for the **whole GRIT runtime**. Governance is one module;
+screens cover tasks, research, models/cost, audit, and an overview KPI strip.
 
 | Route | Method | Role |
 |---|---|---|
-| `/console` | GET | Self-contained HTML (inline CSS/JS, no CDN) |
-| `/console/data` | GET | JSON rollup from `logs/*.jsonl` |
+| `/console` | GET | Self-contained multi-screen HTML (no CDN) |
+| `/console/data?screen=overview\|tasks\|…` | GET | Per-screen JSON rollup |
+| `/console/data` or `?screen=flat` | GET | Legacy flat rollup (back-compat) |
 
-Auth: same fail-closed `X-API-Key` / loopback posture as the rest of the API.
+**Never acts.** No POST under `/console*`. Approvals stay on CLI / Telegram.
 
 ## Run
 
 ```bash
-# terminal 1 — API (loopback)
 python -m src.main --api-only
-
-# terminal 2
 make console
-# Open:  http://127.0.0.1:8000/console
-# Data:  http://127.0.0.1:8000/console/data
+# Open http://127.0.0.1:8000/console
 ```
 
-## Screenshot-in-text (real `/console/data` rollup)
-
-Captured from this tree’s `logs/` (shape only; counts move as you run tests):
+## IA (information architecture)
 
 ```
-┌─ AgentGRIT Console · READ-ONLY · no actions ──────── live · HH:MM:SSZ ─┐
-│                                                                          │
-│  TODAY · debrief counts                                                  │
-│  [day: 2026-07-10] [decisions today: 49] [file total: 49]                │
-│  [research paid: 0] [proceed: 35] [escalated: 10] [refused: 4]           │
-│                                                                          │
-│  DECISION STREAM                         ESCALATIONS QUEUE               │
-│  ┌────────────────────────────┐          ┌────────────────────────────┐  │
-│  │ REFUSED  · bylaws          │          │ pending · esc1             │  │
-│  │ rm -rf /                   │          │ requester=test · risk=30   │  │
-│  │ Law 0                      │          │                            │  │
-│  │ ESCALATED · repo_steward   │          │ manager_decision · …       │  │
-│  │ deploy to production       │          └────────────────────────────┘  │
-│  │ PROCEED · router:allow     │                                          │
-│  │ format helpers             │          ROUTER · by provider            │
-│  └────────────────────────────┘          (empty if no router.jsonl)      │
-│                                                                          │
-│  OBSERVE · last run                      TRUST                           │
-│  No observe snapshot yet                 untrusted / trusted counts      │
-│  (run make observe)                      promotions / demotions          │
-└──────────────────────────────────────────────────────────────────────────┘
+┌─ AgentGRIT Ops · READ-ONLY · Approvals → CLI/Telegram ──────── live ─┐
+│ Overview │  KPI strip + recent activity timeline                      │
+│ Tasks    │  filterable decision table          │ Context rail        │
+│ Governance│ tabs: esc / bylaws / decisions / pillars (thin) │ (selected)│
+│ Research │ briefs · contested · observe snapshot                      │
+│ Models   │ provider bars · budget thr · why-this-model                │
+│ Audit    │ notifications · brief history · decisions · projects stub  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Sample JSON fragment (`GET /console/data`)
+## Screenshot-in-text per screen
+
+### Overview
+```
+KPIs: [decisions today: N] [pending esc: N] [router n] [est cost Σ]
+      [trust ↑] [trust ↓]  + disposition chips
+Last blocked: rm -rf / — Law 0
+Recent activity: decision/escalation timeline (newest first)
+```
+
+### Tasks
+```
+filters: disposition ▾  provider ▾
+| When | Disp | Action | Provider | Bylaw | Evidence |
+| …    | PROCEED | format helpers | ollama | proceed | sufficient |
+Row click → right rail: route reason, bylaw, evidence, link to /brief
+```
+
+### Governance
+```
+tabs: [escalations] [bylaws] [decisions] [pillars]
+Note: Approvals are NOT available here — console is read-only.
+pillars: "No pillars.jsonl yet — intentionally thin."
+```
+
+### Research
+```
+[briefs N] [contested N] [weak/flagged N]
+Observe last run (if API has snapshot) · brief list with CONTESTED badges
+```
+
+### Models & Cost
+```
+[routes] [local] [cloud] [est cost Σ]
+Budget thresholds from config: soft / escalate / hard
+Bars by provider · "Why this model" drawer from router.jsonl reason
+```
+
+### Audit
+```
+Notifications tail · brief history · recent decisions
+Projects: honest stub unless decisions carry project keys
+```
+
+## Sample: `GET /console/data?screen=overview` (shape)
 
 ```json
 {
   "read_only": true,
-  "missing_logs": ["router.jsonl"],
-  "decisions": [
-    {
-      "ts": "2026-07-10T15:40:49.178459",
-      "disposition": "proceed",
-      "action": "format this file and explain the helper function",
-      "rationale": "Forced to ollama (override)",
-      "authorized_by": "router:allow:risk=10",
-      "provider": "ollama",
-      "category": "simple_code"
-    },
-    {
-      "disposition": "escalated",
-      "action": "…",
-      "authorized_by": "agent:repo_steward"
-    }
-  ],
-  "escalations": [
-    {
-      "event": "escalation_created",
-      "id": "ZLC_C_vfnoo",
-      "status": "pending",
-      "risk_level": 10
-    }
-  ],
-  "router": { "by_provider": {}, "total": 0, "recent": [] },
-  "debrief": {
-    "day": "2026-07-10",
-    "decision_count_today": 49,
-    "dispositions_today": { "proceed": 35, "escalated": 10, "refused": 4 }
+  "screen": "overview",
+  "screens": ["overview","tasks","governance","research","models","audit"],
+  "kpis": {
+    "decisions_today": 12,
+    "pending_escalations": 1,
+    "router_total": 12,
+    "last_blocked": { "action": "rm -rf /", "reason": "…" }
   },
-  "trust": {
-    "by_level": { "untrusted": 1, "trusted": 1, "autonomous": 0 }
-  },
-  "observe": { "available": false }
+  "timeline": [ { "kind": "decision", "label": "proceed", "text": "…" } ]
 }
 ```
 
-Disposition badges in the UI: **PROCEED** (green), **REFUSED** (red),
-**ESCALATED** (amber), **CONTESTED** (purple).
+## Data backing (honest)
 
-## What it will not do
-
-- No `POST` / `PUT` / `DELETE` under `/console*`
-- No spawn, approve, observe-refresh, or steward trigger from this UI
-- Missing logs → empty sections, never a hard 500 on `/console/data`
+| Screen | Strong logs | Thin / stub |
+|---|---|---|
+| Overview | decisions, escalations, trust, router | active agents inferred from `authorized_by` |
+| Tasks | decisions (+ router recent) | — |
+| Governance | bylaws, escalations, decisions | **pillars** (no `pillars.jsonl`) |
+| Research | briefs.jsonl, decision evidence | observe needs in-memory snapshot |
+| Models | router.jsonl + config budget thresholds | — |
+| Audit | notifications, briefs, decisions | **projects** only if `project` field set |
 
 ## Tests
 

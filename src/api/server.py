@@ -338,17 +338,29 @@ async def console_page() -> HTMLResponse:
 
 
 @app.get("/console/data", tags=["Console"])
-async def console_data(limit: int = 40) -> dict[str, Any]:
-    """JSON rollup of recent governance logs. Fail-safe empty sections.
+async def console_data(
+    limit: int = 40,
+    screen: str = "flat",
+) -> dict[str, Any]:
+    """JSON rollup of governance / ops logs. Fail-safe empty sections.
 
-    READ-ONLY: tails existing JSONL under logs/; never triggers agents or writes
-    (except that read helpers never write). Observation snapshot is in-memory only.
+    READ-ONLY: tails existing JSONL under logs/; never triggers agents or writes.
+    - screen=flat (default): legacy flat rollup (back-compat)
+    - screen=overview|tasks|governance|research|models|audit: multi-screen ops UI
     """
     try:
-        from .console_data import build_console_rollup
+        from .console_data import build_console_rollup, build_screen_rollup
         from ..utils.logging import DEFAULT_LOG_DIR
         n = max(1, min(int(limit or 40), 200))
-        return build_console_rollup(
+        scr = (screen or "flat").strip().lower()
+        if scr in ("", "flat", "legacy"):
+            return build_console_rollup(
+                DEFAULT_LOG_DIR,
+                observe_snapshot=_last_observe,
+                limit=n,
+            )
+        return build_screen_rollup(
+            scr,
             DEFAULT_LOG_DIR,
             observe_snapshot=_last_observe,
             limit=n,
@@ -359,6 +371,7 @@ async def console_data(limit: int = 40) -> dict[str, Any]:
         return {
             "ts": datetime.utcnow().isoformat() + "Z",
             "read_only": True,
+            "screen": screen,
             "decisions": [],
             "escalations": [],
             "router": {"by_provider": {}, "total": 0, "recent": []},

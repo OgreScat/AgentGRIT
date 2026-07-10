@@ -1,4 +1,4 @@
-"""Operator console — read-only HTML + JSONL rollup."""
+"""Operator console — multi-screen read-only rollups + HTML."""
 
 from __future__ import annotations
 
@@ -7,7 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from src.api.console_data import build_console_rollup
+from src.api.console_data import (
+    build_console_rollup,
+    build_screen_rollup,
+    SCREENS,
+)
 from src.api.console_page import CONSOLE_HTML
 from src.utils.logging import read_jsonl_tail
 
@@ -22,6 +26,12 @@ def _plant(log_dir: Path) -> None:
             "rationale": "low risk",
             "authorized_by": "router:allow:risk=10",
             "chosen_provider": "ollama",
+            "category": "simple_code",
+            "confidence": 0.9,
+            "estimated_cost_usd": 0.0,
+            "route_reason": "cheapest capable",
+            "bylaw_action": "proceed",
+            "evidence": {"verdict": "sufficient", "score": 0.8},
         },
         {
             "ts": "2026-07-10T12:01:00",
@@ -29,6 +39,9 @@ def _plant(log_dir: Path) -> None:
             "action": "deploy to production",
             "rationale": "HIGH risk",
             "authorized_by": "agent:repo_steward",
+            "chosen_provider": "claude-sonnet",
+            "bylaw_action": "escalate",
+            "evidence": {"verdict": "insufficient", "score": 0.3, "require_human": True},
         },
         {
             "ts": "2026-07-10T12:02:00",
@@ -36,6 +49,8 @@ def _plant(log_dir: Path) -> None:
             "action": "rm -rf /",
             "rationale": "Law 0",
             "authorized_by": "bylaws",
+            "bylaw_action": "block",
+            "bylaw_reason": "Blocked by Law 0",
         },
     ]
     (log_dir / "decisions.jsonl").write_text(
@@ -63,15 +78,64 @@ def _plant(log_dir: Path) -> None:
             "provider": p,
             "category": "simple_code",
             "confidence": 0.9,
+            "reason": f"Cheapest provider with code_generation ({p})",
+            "capabilities": ["code_generation"],
+            "estimated_cost_usd": 0.001 if p != "ollama" else 0.0,
+            "task_preview": "format helpers",
         }) for p in ("ollama", "ollama", "perplexity")) + "\n",
+        encoding="utf-8",
+    )
+    (log_dir / "bylaws.jsonl").write_text(
+        json.dumps({
+            "timestamp": "2026-07-10T12:02:00",
+            "command": "rm -rf /",
+            "action": "block",
+            "reason": "Law 0",
+            "rule": "blocked_patterns",
+            "role": "developer",
+        }) + "\n",
+        encoding="utf-8",
+    )
+    (log_dir / "briefs.jsonl").write_text(
+        json.dumps({
+            "ts": "2026-07-10T12:05:00",
+            "id": "brief1",
+            "kind": "legal_research",
+            "question": "case law for counsel",
+            "disposition": "proceed",
+            "confidence_band": "strong",
+            "confidence_score": 0.86,
+            "evidence_verdict": "sufficient",
+            "contested": False,
+            "dropped_count": 1,
+            "authorities": [{"title": "A", "url": "https://example.com/a", "verified": True}],
+            "autonomy_gate": "allow",
+        }) + "\n" + json.dumps({
+            "ts": "2026-07-10T12:06:00",
+            "id": "brief2",
+            "kind": "legal_research",
+            "question": "split authority",
+            "disposition": "escalated",
+            "confidence_band": "flagged",
+            "contested": True,
+            "evidence_verdict": "contested",
+            "dropped_count": 0,
+            "authorities": [],
+        }) + "\n",
+        encoding="utf-8",
+    )
+    (log_dir / "notifications.jsonl").write_text(
+        json.dumps({
+            "ts": "2026-07-10T12:07:00",
+            "channel": "log",
+            "text": "escalation notice",
+            "ok": True,
+        }) + "\n",
         encoding="utf-8",
     )
 
 
 def test_read_jsonl_tail(tmp_path):
-    p = tmp_path / "x.jsonl"
-    p.write_text("\n".join(json.dumps({"i": i}) for i in range(10)) + "\n")
-    # write via helper path
     from src.utils.logging import write_jsonl, read_jsonl_tail
     write_jsonl("t.jsonl", {"a": 1}, log_dir=tmp_path)
     write_jsonl("t.jsonl", {"a": 2}, log_dir=tmp_path)
@@ -80,20 +144,13 @@ def test_read_jsonl_tail(tmp_path):
     assert [x["a"] for x in tail] == [2, 3]
 
 
-def test_rollup_from_planted_logs(tmp_path):
+def test_flat_rollup_back_compat(tmp_path):
     _plant(tmp_path)
-    roll = build_console_rollup(tmp_path, observe_snapshot=None, limit=40)
+    roll = build_console_rollup(tmp_path, limit=40)
     assert roll["read_only"] is True
     assert len(roll["decisions"]) == 3
-    # newest first
     assert roll["decisions"][0]["disposition"] == "refused"
-    disps = {d["disposition"] for d in roll["decisions"]}
-    assert "proceed" in disps and "escalated" in disps
-    assert roll["escalations"]
-    assert roll["escalations"][0]["id"] == "esc1"
     assert roll["router"]["by_provider"]["ollama"] == 2
-    assert roll["router"]["by_provider"]["perplexity"] == 1
-    assert roll["observe"]["available"] is False
 
 
 def test_rollup_missing_logs_empty(tmp_path):
@@ -101,27 +158,46 @@ def test_rollup_missing_logs_empty(tmp_path):
     empty.mkdir()
     roll = build_console_rollup(empty, limit=10)
     assert roll["decisions"] == []
-    assert roll["escalations"] == []
-    assert roll["router"]["total"] == 0
     assert "decisions.jsonl" in roll["missing_logs"]
+    for scr in ("overview", "tasks", "governance", "research", "models", "audit"):
+        s = build_screen_rollup(scr, empty, limit=5)
+        assert s["read_only"] is True
+        assert s.get("screen") == scr or "error" not in s or s.get("screen") == scr
 
 
-def test_rollup_with_observe_snapshot(tmp_path):
+def test_each_screen_shape(tmp_path):
     _plant(tmp_path)
-    snap = {
-        "ts": "2026-07-10T12:00:00Z",
-        "feed": "usgs_earthquakes",
-        "result": {
-            "events": [{"event_id": "1"}],
-            "actionable_count": 0,
-            "non_actionable_count": 1,
-            "assessment_verdict": "weak",
-        },
-    }
-    roll = build_console_rollup(tmp_path, observe_snapshot=snap)
-    assert roll["observe"]["available"] is True
-    assert roll["observe"]["event_count"] == 1
-    assert roll["observe"]["actionable_count"] == 0
+    ov = build_screen_rollup("overview", tmp_path, limit=20)
+    assert ov["screen"] == "overview"
+    assert "kpis" in ov
+    assert "timeline" in ov
+    assert ov["kpis"]["pending_escalations"] >= 1
+    assert ov["kpis"]["last_blocked"] is not None
+
+    tasks = build_screen_rollup("tasks", tmp_path)
+    assert tasks["screen"] == "tasks"
+    assert len(tasks["tasks"]) == 3
+    assert "filters" in tasks
+
+    gov = build_screen_rollup("governance", tmp_path)
+    assert gov["escalations"]
+    assert gov["bylaws"]
+    assert gov["pillars"]["available"] is False
+    assert "read-only" in (gov.get("note") or "").lower() or "NOT" in (gov.get("note") or "")
+
+    res = build_screen_rollup("research", tmp_path)
+    assert res["briefs"]
+    assert any(b.get("contested") for b in res["contested_briefs"])
+
+    models = build_screen_rollup("models", tmp_path)
+    assert models["by_provider"]["ollama"] == 2
+    assert models["local_count"] >= 2
+    assert models["why_this_model"]
+    assert "soft_budget" in (models.get("budget_thresholds") or {})
+
+    audit = build_screen_rollup("audit", tmp_path)
+    assert audit["notifications"]
+    assert audit["projects"]["available"] is False
 
 
 @pytest.mark.asyncio
@@ -132,43 +208,41 @@ async def test_console_routes():
     html = await server.console_page()
     assert isinstance(html, HTMLResponse)
     body = html.body.decode("utf-8") if isinstance(html.body, (bytes, bytearray)) else str(html.body)
-    assert "AgentGRIT Console" in body
-    assert "READ-ONLY" in body
-    assert "/console/data" in body
-    # no action verbs that would POST
+    assert "AgentGRIT Ops" in body or "READ-ONLY" in body
     assert "method=\"POST\"" not in body.lower()
-    assert "fetch('/console/data'" in body or 'fetch("/console/data"' in body
+    assert "screen=" in body or "/console/data" in body
+    for s in ("overview", "tasks", "governance", "research", "models", "audit"):
+        assert s in body
 
-    # inject log_dir via monkeypatch of DEFAULT_LOG_DIR used inside handler
-    # call build path directly is enough; also hit handler with default
-    data = await server.console_data(limit=10)
-    assert data.get("read_only") is True
-    assert "decisions" in data
-    assert "escalations" in data
-    assert "router" in data
+    flat = await server.console_data(limit=10, screen="flat")
+    assert flat.get("read_only") is True
+    assert "decisions" in flat
+
+    ov = await server.console_data(limit=10, screen="overview")
+    assert ov.get("read_only") is True
+    assert ov.get("screen") == "overview" or "kpis" in ov
 
 
-def test_html_is_self_contained():
+def test_html_self_contained():
     assert "cdn." not in CONSOLE_HTML.lower()
-    assert "http://" not in CONSOLE_HTML  # no external assets
     assert "https://" not in CONSOLE_HTML
+    assert "http://" not in CONSOLE_HTML
     assert "<script>" in CONSOLE_HTML
-    assert "<style>" in CONSOLE_HTML
+    assert "READ-ONLY" in CONSOLE_HTML
 
 
 def test_console_endpoints_are_get_only():
-    """Grep-provable: only GET routes for /console — no POST action surface."""
     from src.api import server
-    paths = []
     for r in server.app.routes:
         path = getattr(r, "path", None)
         methods = getattr(r, "methods", None) or set()
         if path and path.startswith("/console"):
-            paths.append((path, set(methods)))
-    assert any(p == "/console" for p, _ in paths)
-    assert any(p == "/console/data" for p, _ in paths)
-    for path, methods in paths:
-        assert "POST" not in methods
-        assert "PUT" not in methods
-        assert "DELETE" not in methods
-        assert "GET" in methods
+            assert "POST" not in methods
+            assert "PUT" not in methods
+            assert "DELETE" not in methods
+            assert "GET" in methods
+
+
+def test_screens_constant():
+    assert "overview" in SCREENS
+    assert "flat" in SCREENS

@@ -168,11 +168,12 @@ observe:
 observe-fixture:
 	@$(PYTHON) -m src.observe.run --fixture-dir tests/fixtures/observe
 
-# Read-only operator console (renders logs; never acts). Start API first: make run-agents
+# Read-only multi-screen ops console (renders logs; never acts). Start API first.
 console:
-	@echo "AgentGRIT operator console (READ-ONLY)"
+	@echo "AgentGRIT ops console (READ-ONLY · multi-screen)"
 	@echo "  Open:  http://127.0.0.1:$${API_PORT:-8000}/console"
-	@echo "  Data:  http://127.0.0.1:$${API_PORT:-8000}/console/data"
+	@echo "  Data:  http://127.0.0.1:$${API_PORT:-8000}/console/data?screen=overview"
+	@echo "  Screens: overview|tasks|governance|research|models|audit  (or screen=flat legacy)"
 	@echo "  Start the API if needed:  python -m src.main --api-only"
 	@echo "  This UI only GETs logs — it cannot spawn tasks or approve escalations."
 
