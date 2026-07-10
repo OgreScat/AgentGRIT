@@ -241,7 +241,36 @@ def run_debrief(day: str | None = None, log_dir: Path | None = None) -> str:
     return render(build_debrief(day=day, log_dir=log_dir))
 
 
+def run_debrief_and_notify(
+    day: str | None = None,
+    log_dir: Path | None = None,
+    *,
+    notify: bool = False,
+) -> str:
+    """Build + render, optionally deliver via src.utils.notify.
+
+    Schedulable entry point for cron / launchd / make debrief. The public
+    repo does not install a GM supervisor — wire this command from your
+    private scheduler if you want it nightly.
+
+    notify=True (or env DEBRIEF_NOTIFY=1) calls notify(); channel is
+    operator-configured (NOTIFY_CHANNEL). Failures never raise.
+    """
+    import os
+    text = run_debrief(day=day, log_dir=log_dir)
+    should = notify or os.environ.get("DEBRIEF_NOTIFY", "").strip() in ("1", "true", "yes")
+    if should:
+        try:
+            from src.utils.notify import notify as _notify
+            _notify(text[:3500])  # keep payloads bounded for SMS/Telegram
+        except Exception:
+            pass
+    return text
+
+
 if __name__ == "__main__":
     import sys
-    day_arg = sys.argv[1] if len(sys.argv) > 1 else None
-    print(run_debrief(day=day_arg))
+    args = [a for a in sys.argv[1:] if a != "--notify"]
+    do_notify = "--notify" in sys.argv[1:]
+    day_arg = args[0] if args else None
+    print(run_debrief_and_notify(day=day_arg, notify=do_notify))

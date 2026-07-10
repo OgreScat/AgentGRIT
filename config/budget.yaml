@@ -1,0 +1,7 @@
+# Budget thresholds — defaults match GovernorConfig / historical env.
+# Override here or via GRIT_SOFT_BUDGET / GRIT_ESCALATE_BUDGET / GRIT_HARD_CEILING
+# / RESEARCH_MAX_PAID_PER_DAY (env wins over this file).
+soft_budget: 2.00
+escalate_budget: 5.00
+hard_ceiling: 25.00
+research_max_paid_per_day: 25

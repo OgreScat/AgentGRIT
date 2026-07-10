@@ -192,12 +192,32 @@ def _contradiction(scored: list, min_tier: float, overlap_thr: float) -> tuple[b
     return False, ""
 
 
-def assess(results: list[dict], high_stakes: bool, reversible: bool) -> Assessment:
-    """Is the evidence strong enough to act on, given stakes + reversibility?"""
+def assess(
+    results: list[dict],
+    high_stakes: bool,
+    reversible: bool,
+    project: str | None = None,
+) -> Assessment:
+    """Is the evidence strong enough to act on, given stakes + reversibility?
+
+    Thresholds: env-global defaults (unchanged), optionally overridden per
+    project via config/projects/<name>.yaml or projects/<name>/research_thresholds.yaml.
+    """
+    # Baseline env-global (backward compatible).
     strong = _thr("GRIT_EVIDENCE_STRONG", 0.82)
     corrob = _thr("GRIT_EVIDENCE_CORROBORATED", 0.65)
     adequate = _thr("GRIT_EVIDENCE_ADEQUATE", 0.62)
     overlap_thr = _thr("GRIT_CONTRADICTION_OVERLAP", 0.18)
+    if project:
+        try:
+            from src.governance.config_loader import load_project_research_thresholds
+            pt = load_project_research_thresholds(project)
+            strong = float(pt.get("strong", strong))
+            corrob = float(pt.get("corroborated", corrob))
+            adequate = float(pt.get("adequate", adequate))
+            overlap_thr = float(pt.get("contradiction_overlap", overlap_thr))
+        except Exception:
+            pass
 
     if not results:
         if high_stakes:

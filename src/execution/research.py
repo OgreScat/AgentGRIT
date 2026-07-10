@@ -232,7 +232,13 @@ def culminate(query: str, action: str = "", high_stakes: bool = True,
     results = [free] if free.get("ok") else []
     try:
         from src.governance.research_quality import assess
-        a = assess(results, high_stakes, reversible)
+        proj = None
+        try:
+            from src.governance.priority_manager import detect_project_from_task
+            proj = detect_project_from_task(action or query)
+        except Exception:
+            proj = None
+        a = assess(results, high_stakes, reversible, project=proj)
     except Exception:
         class _A:  # fail safe -> treat as insufficient
             verdict = type("V", (), {"value": "insufficient"})()

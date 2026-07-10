@@ -604,31 +604,48 @@ class LLMRouter:
             action_type="api_call",
         )
 
-        # Decision record + autonomy posture (fail-safe; never break execute).
-        # cheaper_alternatives uses the live MODEL_COSTS table in this module.
+        # Autonomy: real per-action risk (never hardcode low) + BINDING gate.
+        # Decision-record I/O is fail-safe and must never break execute.
         rec_disposition = None
         autonomy_gate = None
+        risk_level = 30  # fail toward HIGH if classifier unavailable
+        auto_reason = ""
+        try:
+            from src.governance.autonomy import (
+                decide as autonomy_decide,
+                classify_action_risk,
+                must_stop as autonomy_must_stop,
+            )
+            from src.governance.trust import get_trust_manager
+
+            risk_level = classify_action_risk(task, bylaw_result=bylaw_result)
+            trust_level = get_trust_manager().get_trust_level(category.value)
+            auto = autonomy_decide(
+                risk=risk_level,
+                trust=trust_level,
+                bylaw_action=bylaw_result.action,
+            )
+            autonomy_gate = auto.gate.value
+            auto_reason = auto.reason
+            stop_for_autonomy = autonomy_must_stop(auto)
+        except Exception:
+            # Fail-safe: if the gate cannot be evaluated, do not auto-run.
+            autonomy_gate = "escalate"
+            auto_reason = "autonomy evaluation failed -- fail-safe escalate"
+            stop_for_autonomy = True
+            auto = None  # type: ignore
+
         try:
             from src.governance.decision_record import (
                 record as _record_decision,
                 cheaper_alternatives,
             )
-            from src.governance.autonomy import decide as autonomy_decide
-            from src.governance.trust import get_trust_manager
-
-            trust_level = get_trust_manager().get_trust_level(category.value)
-            auto = autonomy_decide(
-                risk="low",  # router.execute is model dispatch; bylaws carry severity
-                trust=trust_level,
-                bylaw_action=bylaw_result.action,
-            )
-            autonomy_gate = auto.gate.value
             rec = _record_decision(
                 action=task[:200],
                 routing=decision,
                 bylaw=bylaw_result,
                 alternatives=cheaper_alternatives(decision.provider, MODEL_COSTS),
-                authorized_by=f"router:{auto.gate.value}",
+                authorized_by=f"router:{autonomy_gate}:risk={risk_level}",
             )
             rec_disposition = rec.disposition.value
         except Exception:
@@ -649,6 +666,25 @@ class LLMRouter:
                 "bylaw_action": bylaw_result.action.value,
                 "decision_disposition": rec_disposition,
                 "autonomy_gate": autonomy_gate,
+                "risk_level": risk_level,
+            }
+
+        # BINDING autonomy: DENY / ESCALATE stop before any model call.
+        # REQUIRE_BRIEFING proceeds (already recorded above).
+        if stop_for_autonomy:
+            return {
+                "provider": "autonomy",
+                "response": (
+                    f"{autonomy_gate} by autonomy: {auto_reason}"
+                ),
+                "tokens": 0,
+                "cost": 0.0,
+                "category": category.value,
+                "routing_decision": decision.to_log_entry(),
+                "bylaw_action": bylaw_result.action.value,
+                "decision_disposition": rec_disposition,
+                "autonomy_gate": autonomy_gate,
+                "risk_level": risk_level,
             }
 
         # Local model gets the live AgentGRIT identity prompt prepended —
@@ -702,6 +738,7 @@ class LLMRouter:
             "category": category.value,
             "routing_decision": decision.to_log_entry(),  # Evidence bundle
             "bylaw_action": bylaw_result.action.value,
+            "risk_level": risk_level,
         }
         if rec_disposition is not None:
             result["decision_disposition"] = rec_disposition

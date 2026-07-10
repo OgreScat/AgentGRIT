@@ -1,34 +1,22 @@
 """
-Budget Governor -- one read surface over the budget sources that already exist.
+Budget Governor -- live facade over budget sources + priority-aware pressure.
 
-AgentGRIT historically tracked spend in three places that never talked to each
-other:
+Sources (no invented costs):
+  1. config/budget.yaml + env + GovernorConfig defaults (via config_loader)
+  2. research paid-call cap -- RESEARCH_MAX_PAID_PER_DAY + logs/research_budget.jsonl
+  3. priority_manager weights -- scale soft/escalate only (hard ceiling never rises)
 
-  1. workflow cost thresholds  -- src/workflow/cost_governor.GovernorConfig
-     (soft_budget=$2, escalate_budget=$5, hard_ceiling=$25)
-  2. research paid-call cap    -- RESEARCH_MAX_PAID_PER_DAY (default 25) +
-     logs/research_budget.jsonl  (src/execution/research.py)
-  3. router UsageTracker       -- Perplexity monthly budget field on the
-     in-process tracker (src/execution/router.py MODEL_COSTS / UsageTracker)
+Live call path: cost_governor.govern() invokes check_estimated_usd() so plan
+verdicts reflect budget pressure and project priority. govern_plan() still
+delegates full furnace logic to cost_governor (single plan policy).
 
-This module does NOT invent costs or re-route models. It:
-  * exposes a single status() that reports live research paid-call usage
-  * applies the SAME dollar thresholds as cost_governor.GovernorConfig to a
-    plain estimated-USD figure (for call sites that have a number, not a plan)
-  * delegates full WorkflowPlan governance to cost_governor.govern() so there
-    is one policy, not two
-
-Dollar defaults are copied from GovernorConfig fields at import time and can
-be overridden via env without renaming any keys:
-
-  GRIT_SOFT_BUDGET / GRIT_ESCALATE_BUDGET / GRIT_HARD_CEILING
-
-Research cap remains RESEARCH_MAX_PAID_PER_DAY (unchanged contract).
+Hard ceiling always BLOCKs regardless of priority or trust.
+High-priority projects (weight >= threshold) are protected from *soft-budget*
+DOWNGRADE only — they still ESCALATE/BLOCK on escalate/hard thresholds.
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -79,6 +67,9 @@ class BudgetDecision:
     estimated_usd: float
     reasons: list[str]
     trust_level: str
+    priority_weight: float = 0.5
+    effective_soft: float = 2.0
+    effective_escalate: float = 5.0
 
     def to_entry(self) -> dict:
         return {
@@ -86,16 +77,21 @@ class BudgetDecision:
             "estimated_usd": self.estimated_usd,
             "reasons": list(self.reasons),
             "trust_level": self.trust_level,
+            "priority_weight": self.priority_weight,
+            "effective_soft": self.effective_soft,
+            "effective_escalate": self.effective_escalate,
         }
 
 
 def _thresholds() -> BudgetThresholds:
-    # Defaults mirror GovernorConfig exactly (cost_governor.py lines 61-63).
-    soft = float(os.environ.get("GRIT_SOFT_BUDGET", "2.00"))
-    escalate = float(os.environ.get("GRIT_ESCALATE_BUDGET", "5.00"))
-    hard = float(os.environ.get("GRIT_HARD_CEILING", "25.00"))
-    max_paid = int(os.environ.get("RESEARCH_MAX_PAID_PER_DAY", "25"))
-    return BudgetThresholds(soft, escalate, hard, max_paid)
+    from src.governance.config_loader import load_budget_config
+    cfg = load_budget_config()
+    return BudgetThresholds(
+        soft_budget=float(cfg["soft_budget"]),
+        escalate_budget=float(cfg["escalate_budget"]),
+        hard_ceiling=float(cfg["hard_ceiling"]),
+        research_max_paid_per_day=int(cfg["research_max_paid_per_day"]),
+    )
 
 
 def research_paid_today() -> int:
@@ -127,46 +123,90 @@ def allow_paid_research() -> bool:
 def check_estimated_usd(
     estimated_usd: float,
     trust_level: str = "UNTRUSTED",
+    *,
+    project: str | None = None,
+    priority_weight: float | None = None,
+    soft_budget: float | None = None,
+    escalate_budget: float | None = None,
+    hard_ceiling: float | None = None,
 ) -> BudgetDecision:
-    """Apply cost_governor dollar thresholds to a single estimated-USD figure.
+    """Apply priority-scaled soft/escalate thresholds to an estimated-USD figure.
 
-    Trust=AUTONOMOUS may auto-clear an over-escalate figure (same rule as
-    cost_governor.govern lines 185-189). Hard ceiling always BLOCKs.
+    Hard ceiling is never increased by priority. Trust=AUTONOMOUS may
+    auto-clear an over-escalate figure (same rule as cost_governor). High
+    priority projects skip soft-budget DOWNGRADE (protected) but not escalate.
+
+    Optional soft_budget / escalate_budget / hard_ceiling override the loaded
+    defaults (used when cost_governor passes a GovernorConfig).
     """
+    from src.governance.priority_manager import (
+        weight_for, budget_scale, is_high_priority,
+    )
+
     thr = _thresholds()
+    base_soft = float(soft_budget) if soft_budget is not None else thr.soft_budget
+    base_esc = float(escalate_budget) if escalate_budget is not None else thr.escalate_budget
+    hard = float(hard_ceiling) if hard_ceiling is not None else thr.hard_ceiling
     cost = float(estimated_usd)
     tl = (trust_level or "UNTRUSTED").upper()
+    w = float(priority_weight) if priority_weight is not None else weight_for(project)
+    scale = budget_scale(w)
+    soft = base_soft * scale
+    escalate = base_esc * scale
+    # hard never scaled up
     reasons: list[str] = []
 
-    if cost > thr.hard_ceiling:
+    if cost > hard:
         reasons.append(
-            f"Estimated ${cost:.2f} exceeds hard ceiling ${thr.hard_ceiling:.2f}."
+            f"Estimated ${cost:.2f} exceeds hard ceiling ${hard:.2f}."
         )
-        return BudgetDecision(BudgetVerdict.BLOCK, cost, reasons, tl)
+        return BudgetDecision(
+            BudgetVerdict.BLOCK, cost, reasons, tl, w, soft, escalate,
+        )
 
-    if cost > thr.escalate_budget:
+    if cost > escalate:
         reasons.append(
-            f"Estimated ${cost:.2f} exceeds escalate budget ${thr.escalate_budget:.2f}."
+            f"Estimated ${cost:.2f} exceeds escalate budget ${escalate:.2f} "
+            f"(base ${base_esc:.2f} × priority_scale {scale:.2f})."
         )
         if tl == "AUTONOMOUS":
             reasons.append("Trust=AUTONOMOUS -> auto-approved despite cost.")
-            return BudgetDecision(BudgetVerdict.ALLOW, cost, reasons, tl)
-        return BudgetDecision(BudgetVerdict.ESCALATE, cost, reasons, tl)
-
-    if cost > thr.soft_budget:
-        reasons.append(
-            f"Estimated ${cost:.2f} over soft budget ${thr.soft_budget:.2f}."
+            return BudgetDecision(
+                BudgetVerdict.ALLOW, cost, reasons, tl, w, soft, escalate,
+            )
+        return BudgetDecision(
+            BudgetVerdict.ESCALATE, cost, reasons, tl, w, soft, escalate,
         )
-        return BudgetDecision(BudgetVerdict.DOWNGRADE, cost, reasons, tl)
 
-    reasons.append(f"Within budget at ${cost:.2f}.")
-    return BudgetDecision(BudgetVerdict.ALLOW, cost, reasons, tl)
+    if cost > soft:
+        if is_high_priority(project) or w >= 0.75:
+            reasons.append(
+                f"Estimated ${cost:.2f} over soft ${soft:.2f}, but high priority "
+                f"(weight={w:.2f}) protected from soft-budget downgrade."
+            )
+            return BudgetDecision(
+                BudgetVerdict.ALLOW, cost, reasons, tl, w, soft, escalate,
+            )
+        reasons.append(
+            f"Estimated ${cost:.2f} over soft budget ${soft:.2f} "
+            f"(base ${base_soft:.2f} × priority_scale {scale:.2f})."
+        )
+        return BudgetDecision(
+            BudgetVerdict.DOWNGRADE, cost, reasons, tl, w, soft, escalate,
+        )
+
+    reasons.append(
+        f"Within budget at ${cost:.2f} (soft ${soft:.2f}, priority weight {w:.2f})."
+    )
+    return BudgetDecision(
+        BudgetVerdict.ALLOW, cost, reasons, tl, w, soft, escalate,
+    )
 
 
-def govern_plan(plan: Any, trust_level: str = "UNTRUSTED") -> Any:
+def govern_plan(plan: Any, trust_level: str = "UNTRUSTED", project: str | None = None) -> Any:
     """Delegate full WorkflowPlan governance to cost_governor (single policy)."""
     from src.workflow.cost_governor import govern, GovernorConfig
-    return govern(plan, GovernorConfig(trust_level=trust_level.upper()))
+    return govern(plan, GovernorConfig(trust_level=trust_level.upper()), project=project)
 
 
 if __name__ == "__main__":

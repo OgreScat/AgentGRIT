@@ -172,7 +172,17 @@ def _maybe_record(plan: WorkflowPlan, decision: GovernedDecision, cfg: GovernorC
         pass
 
 
-def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> GovernedDecision:
+def govern(
+    plan: WorkflowPlan,
+    config: GovernorConfig | None = None,
+    project: str | None = None,
+) -> GovernedDecision:
+    """Govern a plan. Live path also consults budget_governor + priority_manager.
+
+    Furnace detection stays here (plan-shape policy). Dollar soft/escalate/hard
+    pressure goes through budget_governor.check_estimated_usd so priority weights
+    actually change the verdict.
+    """
     cfg = config or GovernorConfig()
     plan = _normalize_order(plan)
     reasons: list[str] = []
@@ -191,16 +201,7 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
         _maybe_record(plan_out, d, cfg)
         return d
 
-    # 1. Hard ceiling → BLOCK.
-    if cost > cfg.hard_ceiling:
-        reasons.append(
-            f"Estimated ${cost:.2f} exceeds hard ceiling ${cfg.hard_ceiling:.2f}. "
-            f"Scope to a slice and re-plan."
-        )
-        return _done(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
-                     reasons, savings)
-
-    # 2. Unjustified furnace → BLOCK. Many agents, but none on hard kinds.
+    # 1. Unjustified furnace → BLOCK (plan-shape; not a dollar table).
     justified = any(s.kind in HARD_KINDS for s in plan.stages)
     if total_agents >= cfg.furnace_agent_threshold and not justified:
         reasons.append(
@@ -210,7 +211,73 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
         return _done(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
                      reasons, savings)
 
-    # 3. Over escalate budget → ESCALATE (unless AUTONOMOUS trust).
+    # 2. Live budget + priority facade (single dollar policy surface).
+    proj = project
+    try:
+        from src.governance.budget_governor import check_estimated_usd, BudgetVerdict
+        from src.governance.priority_manager import detect_project_from_task, weight_for
+
+        if proj is None:
+            proj = detect_project_from_task(plan.task)
+        w = weight_for(proj)
+        bd = check_estimated_usd(
+            cost,
+            trust_level=cfg.trust_level,
+            project=proj,
+            priority_weight=w,
+            soft_budget=cfg.soft_budget,
+            escalate_budget=cfg.escalate_budget,
+            hard_ceiling=cfg.hard_ceiling,
+        )
+        reasons.extend(bd.reasons)
+
+        if bd.verdict is BudgetVerdict.BLOCK:
+            return _done(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
+                         reasons, savings)
+
+        if bd.verdict is BudgetVerdict.ESCALATE:
+            if opus_agents:
+                reasons.append(f"{opus_agents} Opus agents in plan.")
+            if has_downgrade:
+                reasons.append(
+                    f"A governed downgrade saves ${savings:.2f} "
+                    f"(→ ${downgraded.governed_cost:.2f}) without touching hard stages."
+                )
+            return _done(Verdict.ESCALATE, plan,
+                         downgraded if has_downgrade else None, reasons, savings)
+
+        if bd.verdict is BudgetVerdict.DOWNGRADE:
+            if has_downgrade:
+                reasons.append(
+                    f"Offered downgrade → ${downgraded.governed_cost:.2f} "
+                    f"(saves ${savings:.2f})."
+                )
+                return _done(Verdict.DOWNGRADE, plan, downgraded, reasons, savings)
+            # No soft stages to cut — surface pressure but allow full plan.
+            reasons.append("Budget pressure noted; no soft stages available to downgrade.")
+            return _done(Verdict.ALLOW, plan, None, reasons, savings)
+
+        # BudgetVerdict.ALLOW — optional downgrade still surfaced.
+        if has_downgrade:
+            reasons.append(
+                f"Within budget. Optional downgrade available (saves ${savings:.2f})."
+            )
+            return _done(Verdict.ALLOW, plan, downgraded, reasons, savings)
+        return _done(Verdict.ALLOW, plan, None, reasons, savings)
+    except Exception as exc:
+        # Fail-safe: fall back to legacy GovernorConfig numeric gates if
+        # budget_governor cannot load (should be rare).
+        reasons.append(f"budget_governor unavailable ({exc}); using GovernorConfig gates.")
+
+    # ── Legacy fallback (mirrors pre-priority behavior) ─────────────────────
+    if cost > cfg.hard_ceiling:
+        reasons.append(
+            f"Estimated ${cost:.2f} exceeds hard ceiling ${cfg.hard_ceiling:.2f}. "
+            f"Scope to a slice and re-plan."
+        )
+        return _done(Verdict.BLOCK, plan, downgraded if has_downgrade else None,
+                     reasons, savings)
+
     if cost > cfg.escalate_budget:
         reasons.append(
             f"Estimated ${cost:.2f} exceeds escalate budget ${cfg.escalate_budget:.2f}."
@@ -230,7 +297,6 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
         return _done(Verdict.ESCALATE, plan,
                      downgraded if has_downgrade else None, reasons, savings)
 
-    # 4. Over soft budget but under escalate → DOWNGRADE offer.
     if cost > cfg.soft_budget and has_downgrade:
         reasons.append(
             f"Estimated ${cost:.2f} over soft budget ${cfg.soft_budget:.2f}. "
@@ -238,7 +304,6 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
         )
         return _done(Verdict.DOWNGRADE, plan, downgraded, reasons, savings)
 
-    # 5. Otherwise ALLOW. Still surface a downgrade if it's meaningfully cheaper.
     if has_downgrade:
         reasons.append(
             f"Within budget. Optional downgrade available (saves ${savings:.2f})."
@@ -249,11 +314,15 @@ def govern(plan: WorkflowPlan, config: GovernorConfig | None = None) -> Governed
     return _done(Verdict.ALLOW, plan, None, reasons, savings)
 
 
-def govern_task(task: str, config: GovernorConfig | None = None) -> GovernedDecision:
+def govern_task(
+    task: str,
+    config: GovernorConfig | None = None,
+    project: str | None = None,
+) -> GovernedDecision:
     """Convenience: plan + govern in one call."""
     cfg = config or GovernorConfig()
     plan = plan_workflow(task, budget_ceiling=cfg.escalate_budget)
-    return govern(plan, cfg)
+    return govern(plan, cfg, project=project)
 
 
 # ── CLI demo ──────────────────────────────────────────────────────────────────

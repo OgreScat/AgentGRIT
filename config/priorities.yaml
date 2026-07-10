@@ -1,0 +1,8 @@
+# Project priority weights (0.0 .. 1.0). Higher = more budget headroom on
+# soft/escalate thresholds and protection from soft-budget downgrades.
+# Absent projects use default_weight (neutral scale = 1.0).
+default_weight: 0.5
+high_priority_threshold: 0.75
+projects:
+  # example: 0.9
+  default: 0.5

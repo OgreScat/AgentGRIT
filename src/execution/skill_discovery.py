@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from src.execution.skill_review import Decision, SkillVerdict, review
 
@@ -27,6 +28,8 @@ _STOP = {"the", "a", "an", "to", "of", "for", "and", "or", "in", "on", "with",
          "my", "your", "that", "this", "it", "from", "into"}
 
 TRUSTED_SOURCES: tuple[str, ...] = ()
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_SKILLS_DIR = _REPO_ROOT / "skills"
 
 
 def _tokens(text: str) -> set[str]:
@@ -124,3 +127,106 @@ def discover(task: str, catalog: list[Skill], *, min_stars: int = 50,
         cands.append(combo)
 
     return cands[:top]
+
+
+def default_skills_dir() -> Path:
+    return _DEFAULT_SKILLS_DIR
+
+
+def _parse_skill_md(path: Path) -> Skill | None:
+    """Parse a SKILL.md (or top-level .md) into a Skill. Fail-soft → None."""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except Exception:
+        return None
+    name = path.parent.name if path.name.upper() == "SKILL.MD" else path.stem
+    description_lines: list[str] = []
+    tags: list[str] = []
+    source = f"local:{path.parent.name if path.name.upper() == 'SKILL.MD' else path.stem}"
+    stars = 0
+    runs_code = True
+    permissions: list[str] = []
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            heading = stripped.lstrip("#").strip()
+            if heading:
+                name = heading
+            continue
+        low = stripped.lower()
+        if low.startswith("tags:"):
+            tags = [t.strip() for t in stripped.split(":", 1)[1].split(",") if t.strip()]
+        elif low.startswith("source:"):
+            source = stripped.split(":", 1)[1].strip() or source
+        elif low.startswith("stars:"):
+            try:
+                stars = int(stripped.split(":", 1)[1].strip())
+            except ValueError:
+                pass
+        elif low.startswith("runs_code:"):
+            runs_code = stripped.split(":", 1)[1].strip().lower() in ("true", "1", "yes")
+        elif low.startswith("permissions:"):
+            permissions = [p.strip() for p in stripped.split(":", 1)[1].split(",") if p.strip()]
+        elif stripped:
+            description_lines.append(stripped)
+
+    desc = " ".join(description_lines).strip()
+    if not name:
+        return None
+    return Skill(
+        name=name,
+        description=desc,
+        source=source,
+        stars=stars,
+        tags=tuple(tags),
+        runs_code=runs_code,
+        permissions=tuple(permissions),
+    )
+
+
+def load_catalog_from_dir(skills_dir: Path | None = None) -> list[Skill]:
+    """Load skills from a drop-in directory (see skills/README.md)."""
+    root = skills_dir or default_skills_dir()
+    if not root.is_dir():
+        return []
+    skills: list[Skill] = []
+    seen: set[str] = set()
+    for skill_md in sorted(root.glob("*/SKILL.md")):
+        sk = _parse_skill_md(skill_md)
+        if sk and sk.name not in seen:
+            skills.append(sk)
+            seen.add(sk.name)
+    for md in sorted(root.glob("*.md")):
+        if md.name.upper() == "README.MD":
+            continue
+        sk = _parse_skill_md(md)
+        if sk and sk.name not in seen:
+            skills.append(sk)
+            seen.add(sk.name)
+    return skills
+
+
+def discover_local(
+    task: str,
+    skills_dir: Path | None = None,
+    **kwargs,
+) -> list[Candidate]:
+    """Discover against the repo skills/ catalog (or an explicit dir). Live entry."""
+    catalog = load_catalog_from_dir(skills_dir)
+    return discover(task, catalog, **kwargs)
+
+
+if __name__ == "__main__":
+    import sys
+    q = " ".join(sys.argv[1:]) or "format python code"
+    hits = discover_local(q)
+    print(f"task: {q}")
+    print(f"catalog size: {len(load_catalog_from_dir())}")
+    if not hits:
+        print("no candidates")
+    for c in hits:
+        print(
+            f"  [{c.pass_name}] {c.skill.name} score={c.score} "
+            f"decision={c.decision} human={c.requires_human_confirm}"
+        )

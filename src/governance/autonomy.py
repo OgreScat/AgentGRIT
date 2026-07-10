@@ -26,6 +26,7 @@ branch on trust or risk ad-hoc (router, cost_governor consumers, culminate).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -171,6 +172,100 @@ def may_auto_act(decision: AutonomyDecision) -> bool:
     return decision.gate is AutonomyGate.ALLOW
 
 
+def must_stop(decision: AutonomyDecision) -> bool:
+    """True when the gate forbids side effects: DENY or ESCALATE.
+
+    REQUIRE_BRIEFING proceeds (caller must have recorded the brief) — it is
+    not a hard stop. Unknown/missing decisions fail toward stop.
+    """
+    if decision is None:
+        return True
+    return decision.gate in (AutonomyGate.DENY, AutonomyGate.ESCALATE)
+
+
+# ── Per-action risk classifier (deterministic, pattern-based) ─────────────────
+# Maps action text (+ optional bylaw result) to RiskLevel ints matching
+# escalations.RiskLevel: LOW=10, MEDIUM=20, HIGH=30, CRITICAL=40.
+# Never invents monetary cost; only classifies severity of the *kind* of act.
+
+# CRITICAL: irreversible money movement, destructive system-wide ops
+_CRITICAL_PATTERNS = (
+    r"\b(wire|send|execute)\s+(a\s+)?(payment|transfer|trade)\b",
+    r"\b(transfer|move)\s+(funds|money|usd|btc|eth)\b",
+    r"\b(place|execute)\s+(an?\s+)?(order|trade)\b",
+    r"\bdrop\s+table\b",
+    r"\brm\s+-rf\s+/\b",
+    r"\bgit\s+push\s+--force\b.*\b(main|master)\b",
+    r"\bforce.?push\b.*\b(main|master)\b",
+)
+
+# HIGH: production deploy, secret rotation, publish, destructive scoped ops
+_HIGH_PATTERNS = (
+    r"\b(deploy\s+to\s+prod|production\s+deploy|deploy\s+production)\b",
+    r"\b(rotate|revoke|exfiltrate)\s+(api[_ -]?keys?|secrets?|credentials?|tokens?)\b",
+    r"\b(publish\s+(the\s+)?(repo|package|release)|make\s+\w+\s+public)\b",
+    r"\bgh\s+repo\s+(create|edit)\b",
+    r"\b(delete|destroy|wipe)\s+(the\s+)?(production|prod|database|db|secrets?)\b",
+    r"\brm\s+-rf\b",
+    r"\bgit\s+push\s+--force\b",
+    r"\b(payment|payout|wire\s+transfer)\b",
+    r"\b(chmod\s+777|disable\s+auth|skip\s+verification)\b",
+)
+
+# MEDIUM: multi-file writes, migrations, schema, auth-adjacent
+_MEDIUM_PATTERNS = (
+    r"\b(migrat|refactor|rewrite)\b",
+    r"\b(schema\s+change|alter\s+table)\b",
+    r"\b(auth|permission|acl|rbac)\b",
+    r"\b(across\s+(the\s+)?(codebase|project)|multiple\s+files)\b",
+)
+
+
+def classify_action_risk(
+    action: str,
+    *,
+    bylaw_result: Any = None,
+    reversible: bool | None = None,
+) -> int:
+    """Deterministic risk int for an action string.
+
+    Precedence:
+      1. CRITICAL patterns → 40
+      2. HIGH patterns → 30
+      3. Bylaw BLOCK already refused (caller still gets HIGH for audit) → 30
+      4. Bylaw ESCALATE (severity implied) → 30
+      5. MEDIUM patterns → 20
+      6. Explicit irreversible + non-trivial action → 20
+      7. Default → 10 (LOW)
+
+    Fail-safe: empty/None action → HIGH (30), not silent LOW.
+    """
+    if not action or not str(action).strip():
+        return 30
+    text = str(action).lower()
+
+    for pat in _CRITICAL_PATTERNS:
+        if re.search(pat, text, re.IGNORECASE):
+            return 40
+    for pat in _HIGH_PATTERNS:
+        if re.search(pat, text, re.IGNORECASE):
+            return 30
+
+    ba = _val(getattr(bylaw_result, "action", None)) if bylaw_result is not None else None
+    if ba in ("block", "escalate"):
+        # Bylaw already flagged severity; do not under-rank.
+        return 30
+
+    for pat in _MEDIUM_PATTERNS:
+        if re.search(pat, text, re.IGNORECASE):
+            return 20
+
+    if reversible is False and len(text) > 20:
+        return 20
+
+    return 10
+
+
 if __name__ == "__main__":
     demos = [
         decide(risk="low", trust="autonomous"),
@@ -183,3 +278,11 @@ if __name__ == "__main__":
     ]
     for d in demos:
         print(f"{d.gate.value:18}  risk={d.risk} trust={d.trust}  -- {d.reason}")
+    print("--- classify ---")
+    for s in (
+        "format this file",
+        "deploy to production and rotate secrets",
+        "execute a wire transfer of funds",
+        "refactor across the codebase",
+    ):
+        print(f"  {classify_action_risk(s):2d}  {s}")

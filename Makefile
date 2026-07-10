@@ -1,7 +1,7 @@
 # AgentGRIT Makefile
 # Run "make help" for available commands.
 
-.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps
+.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find
 
 # Python with PYTHONPATH set to project root (makes `from src.` work)
 # Use .venv (canonical virtualenv for this project)
@@ -30,14 +30,19 @@ help:
 	@echo ""
 	@echo "  make logs-dir              Create logs directory"
 	@echo "  make clean-logs            Clear all log files"
+	@echo "  make debrief               Daily debrief from audit logs (optional NOTIFY=1)"
+	@echo "  make idea-project IDEA=... Scaffold projects/<slug> from an idea"
+	@echo "  make skills-find TASK=...  Propose local skills for a task"
 	@echo ""
 	@echo "Logs written to:"
 	@echo "  - logs/router.jsonl"
 	@echo "  - logs/bylaws.jsonl"
 	@echo "  - logs/heartbeat.jsonl"
+	@echo "  - logs/decisions.jsonl"
 	@echo ""
 	@echo "No agents ship registered out of the box -- see src/agents/example_agent.py"
 	@echo "and src/main.py's AgentOrchestrator.AVAILABLE_AGENTS to add your own."
+	@echo "Private GM cron (if any) lives outside this public repo; point it at make debrief."
 
 # Install in editable mode (alternative to PYTHONPATH approach)
 install:
@@ -118,6 +123,24 @@ run-agents-bg: logs-dir
 	@echo "Starting AgentGRIT services in background..."
 	@nohup $(PYTHON) -m src.main > logs/agents.log 2>&1 &
 	@echo "Services started. Check logs/agents.log for output."
+
+# Deterministic daily debrief (schedulable). NOTIFY=1 sends via src.utils.notify.
+debrief: logs-dir
+	@if [ "$(NOTIFY)" = "1" ]; then \
+		$(PYTHON) -m src.agents.daily_debrief_agent --notify; \
+	else \
+		$(PYTHON) -m src.agents.daily_debrief_agent; \
+	fi
+
+# Scaffold a governed project from an idea string
+idea-project:
+	@if [ -z "$(IDEA)" ]; then echo 'Usage: make idea-project IDEA="your idea"'; exit 1; fi
+	@$(PYTHON) -m src.planning.idea_to_project "$(IDEA)"
+
+# Propose local skills for a task (installs nothing)
+skills-find:
+	@if [ -z "$(TASK)" ]; then echo 'Usage: make skills-find TASK="format python"'; exit 1; fi
+	@$(PYTHON) -m src.execution.skill_discovery "$(TASK)"
 	@echo "Run 'make stop-agents' to stop them."
 
 .PHONY: hud
