@@ -44,6 +44,9 @@ from enum import Enum
 _DEFAULT_TIER = {
     "human": 1.00,
     "grok": 0.88, "perplexity": 0.85,
+    # Free Law Project published opinions (public record). Strong but not
+    # human-vetted; never a solo authorizer for irreversible acts (bar 0.82).
+    "courtlistener": 0.80,
     "google": 0.72,   # Google CSE — broad index; mid-trust due to documented
                       # filtering/ranking bias on some topics. Never a solo
                       # authorizer for irreversible actions (bar is 0.82).

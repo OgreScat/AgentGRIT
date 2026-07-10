@@ -199,7 +199,8 @@ _CRITICAL_PATTERNS = (
     r"\bforce.?push\b.*\b(main|master)\b",
 )
 
-# HIGH: production deploy, secret rotation, publish, destructive scoped ops
+# HIGH: production deploy, secret rotation, publish, destructive scoped ops,
+# and attorney-side irreversible legal acts (file/serve/advise-client).
 _HIGH_PATTERNS = (
     r"\b(deploy\s+to\s+prod|production\s+deploy|deploy\s+production)\b",
     r"\b(rotate|revoke|exfiltrate)\s+(api[_ -]?keys?|secrets?|credentials?|tokens?)\b",
@@ -210,6 +211,11 @@ _HIGH_PATTERNS = (
     r"\bgit\s+push\s+--force\b",
     r"\b(payment|payout|wire\s+transfer)\b",
     r"\b(chmod\s+777|disable\s+auth|skip\s+verification)\b",
+    # Legal domain: filing / serving / client advice are never auto-run
+    r"\b(file|filing)\s+(a\s+)?(motion|complaint|brief|pleading|lawsuit|petition)\b",
+    r"\b(serve|service\s+of)\s+(process|a\s+subpoena|the\s+complaint)\b",
+    r"\badvise\s+(a\s+|the\s+)?client\b",
+    r"\bsend\s+(a\s+)?(demand\s+letter|cease.?and.?desist|filing)\b",
 )
 
 # MEDIUM: multi-file writes, migrations, schema, auth-adjacent

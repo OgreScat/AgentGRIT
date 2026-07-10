@@ -190,6 +190,11 @@ class AgentOrchestrator:
             "Governed repo advisor: gardener.tend + skill discovery + autonomy-gated "
             "remediation proposals (no auto-edit). CLI: python -m src.agents.repo_steward_agent"
         ),
+        "legal_research": (
+            "Governed legal-research advisor for a licensed attorney (public-record "
+            "CourtListener only; cite-or-refuse; never files). "
+            "CLI: python -m src.agents.legal_research_agent"
+        ),
     }
 
     def __init__(
@@ -236,6 +241,11 @@ class AgentOrchestrator:
         elif agent_name == "repo_steward":
             task = asyncio.create_task(
                 self._run_repo_steward(task_id),
+                name=f"agent_{agent_name}",
+            )
+        elif agent_name == "legal_research":
+            task = asyncio.create_task(
+                self._run_legal_research(task_id),
                 name=f"agent_{agent_name}",
             )
         else:
@@ -383,6 +393,76 @@ class AgentOrchestrator:
                     summary=f"Cycle {cycle} failed: {str(e)[:100]}",
                 ))
                 console.print(f"[red]repo_steward error: {e}[/red]")
+
+            try:
+                await asyncio.wait_for(
+                    self.shutdown_event.wait(),
+                    timeout=7200,
+                )
+            except asyncio.TimeoutError:
+                pass
+
+    async def _run_legal_research(self, task_id: str):
+        """Run the legal-research advisor (public-record, attorney-tool only).
+
+        Never files/serves/sends. Failures are logged; orchestrator keeps running.
+        The orchestrator loop uses a fixed demo question; one-shot CLI is preferred.
+        """
+        from .agents.legal_research_agent import LegalResearchAgent
+        from .planning.session_files import ProgressEntry
+
+        agent = LegalResearchAgent()
+        # Orchestrator does not hold confidential matter data — generic demo only.
+        demo_q = (
+            "case law research for counsel: public-record survey of "
+            "qualified immunity at summary judgment"
+        )
+
+        cycle = 0
+        while not self.shutdown_event.is_set():
+            cycle += 1
+            self.session_manager.append_progress(task_id, ProgressEntry(
+                timestamp=datetime.utcnow(),
+                agent_id="legal_research",
+                event_type="action",
+                summary=f"Starting legal_research cycle {cycle}",
+            ))
+
+            if self.dry_run:
+                console.print(
+                    f"[dim][DRY-RUN] legal_research cycle {cycle}[/dim]"
+                )
+                await asyncio.sleep(60)
+                continue
+
+            try:
+                result = await agent.run_once(
+                    task=demo_q,
+                    attorney_confirmed=True,
+                    skip_free_research=False,
+                )
+                summary = (
+                    f"Cycle {cycle}: {result.get('status')} "
+                    f"decision={(result.get('evidence') or {}).get('decision_disposition')} "
+                    f"verdict={(result.get('evidence') or {}).get('evidence_verdict')}"
+                )
+                self.session_manager.append_progress(task_id, ProgressEntry(
+                    timestamp=datetime.utcnow(),
+                    agent_id="legal_research",
+                    event_type="action",
+                    summary=summary[:200],
+                ))
+                report = (result.get("evidence") or {}).get("report") or ""
+                if report:
+                    console.print(report[:2000])
+            except Exception as e:
+                self.session_manager.append_progress(task_id, ProgressEntry(
+                    timestamp=datetime.utcnow(),
+                    agent_id="legal_research",
+                    event_type="error",
+                    summary=f"Cycle {cycle} failed: {str(e)[:100]}",
+                ))
+                console.print(f"[red]legal_research error: {e}[/red]")
 
             try:
                 await asyncio.wait_for(

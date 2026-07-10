@@ -1,0 +1,49 @@
+{
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "absolute_url": "/opinion/2812209/obergefell-v-hodges/",
+      "caseName": "Obergefell v. Hodges",
+      "caseNameFull": "Obergefell v. Hodges",
+      "citation": ["576 U.S. 644", "135 S. Ct. 2584"],
+      "cluster_id": 2812209,
+      "court": "Supreme Court of the United States",
+      "court_citation_string": "U.S.",
+      "court_id": "scotus",
+      "dateFiled": "2015-06-26",
+      "docketNumber": "14-556",
+      "opinions": [
+        {
+          "id": 2812209,
+          "snippet": "The right to marry is a fundamental right inherent in the liberty of the person, and under the Due Process and Equal Protection Clauses of the Fourteenth Amendment couples of the same-sex may not be deprived of that right and that liberty.",
+          "type": "lead-opinion"
+        }
+      ],
+      "status": "Published",
+      "syllabus": ""
+    },
+    {
+      "absolute_url": "/opinion/9434877/pearson-v-callahan/",
+      "caseName": "Pearson v. Callahan",
+      "caseNameFull": "Pearson v. Callahan",
+      "citation": ["555 U.S. 223"],
+      "cluster_id": 9434877,
+      "court": "Supreme Court of the United States",
+      "court_citation_string": "U.S.",
+      "court_id": "scotus",
+      "dateFiled": "2009-01-21",
+      "docketNumber": "07-751",
+      "opinions": [
+        {
+          "id": 9434877,
+          "snippet": "Qualified immunity protects government officials from liability for civil damages insofar as their conduct does not violate clearly established statutory or constitutional rights of which a reasonable person would have known. The Court confirmed the two-step sequence is often appropriate but not mandatory.",
+          "type": "lead-opinion"
+        }
+      ],
+      "status": "Published",
+      "syllabus": ""
+    }
+  ]
+}

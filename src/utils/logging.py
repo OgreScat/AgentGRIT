@@ -186,6 +186,37 @@ def read_jsonl(
     return entries
 
 
+def read_jsonl_tail(
+    filename: str,
+    n: int = 50,
+    log_dir: Optional[Path] = None,
+) -> list:
+    """
+    Read the last N JSONL entries (newest at end). Fail-safe: missing/corrupt → [].
+
+    Preferred for operator consoles that care about recent activity, not the head
+    of the file. Does not invent entries.
+    """
+    log_dir = log_dir or DEFAULT_LOG_DIR
+    filepath = log_dir / filename
+    if not filepath.exists() or n <= 0:
+        return []
+    try:
+        lines = filepath.read_text(encoding="utf-8", errors="replace").splitlines()
+    except Exception:
+        return []
+    out: list = []
+    for line in lines[-n:]:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return out
+
+
 def count_jsonl(
     filename: str,
     log_dir: Optional[Path] = None,

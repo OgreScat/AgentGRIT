@@ -16,6 +16,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 import structlog
 
@@ -320,6 +321,53 @@ def _set_last_observe_for_tests(payload: dict[str, Any] | None) -> None:
     """Test helper — inject a snapshot without network."""
     global _last_observe
     _last_observe = payload
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONSOLE — read-only operator dashboard (renders logs; never acts)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/console", response_class=HTMLResponse, tags=["Console"])
+async def console_page() -> HTMLResponse:
+    """Serve the local operator console (self-contained HTML, no CDN).
+
+    READ-ONLY: this route only returns HTML. No form actions, no POST handlers.
+    """
+    from .console_page import CONSOLE_HTML
+    return HTMLResponse(content=CONSOLE_HTML, status_code=200)
+
+
+@app.get("/console/data", tags=["Console"])
+async def console_data(limit: int = 40) -> dict[str, Any]:
+    """JSON rollup of recent governance logs. Fail-safe empty sections.
+
+    READ-ONLY: tails existing JSONL under logs/; never triggers agents or writes
+    (except that read helpers never write). Observation snapshot is in-memory only.
+    """
+    try:
+        from .console_data import build_console_rollup
+        from ..utils.logging import DEFAULT_LOG_DIR
+        n = max(1, min(int(limit or 40), 200))
+        return build_console_rollup(
+            DEFAULT_LOG_DIR,
+            observe_snapshot=_last_observe,
+            limit=n,
+        )
+    except Exception as e:
+        logger.warning("console_data failed", error=str(e))
+        # Never 500 the operator view — empty shell
+        return {
+            "ts": datetime.utcnow().isoformat() + "Z",
+            "read_only": True,
+            "decisions": [],
+            "escalations": [],
+            "router": {"by_provider": {}, "total": 0, "recent": []},
+            "debrief": {},
+            "trust": {"by_level": {}},
+            "observe": {"available": False},
+            "missing_logs": ["*"],
+            "error": "rollup failed safe",
+        }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

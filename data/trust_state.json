@@ -1,1 +1,18 @@
-{"history": {}}
+{
+  "history": {
+    "test:promote": {
+      "trust_level": "trusted",
+      "consecutive_successes": 5,
+      "consecutive_failures": 0,
+      "total_successes": 5,
+      "total_failures": 0
+    },
+    "test:demote": {
+      "trust_level": "untrusted",
+      "consecutive_successes": 0,
+      "consecutive_failures": 1,
+      "total_successes": 5,
+      "total_failures": 1
+    }
+  }
+}

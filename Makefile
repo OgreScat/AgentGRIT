@@ -1,7 +1,7 @@
 # AgentGRIT Makefile
 # Run "make help" for available commands.
 
-.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find agent-steward observe
+.PHONY: help install test-imports agentgrit-smoketest logs-dir clean-logs run tail stop status run-agents stop-agents install-deps debrief idea-project skills-find agent-steward agent-legal observe console
 
 # Python with PYTHONPATH set to project root (makes `from src.` work)
 # Use .venv (canonical virtualenv for this project)
@@ -34,8 +34,10 @@ help:
 	@echo "  make idea-project IDEA=... Scaffold projects/<slug> from an idea"
 	@echo "  make skills-find TASK=...  Propose local skills for a task"
 	@echo "  make agent-steward DIR=... Run Repo Steward advisor on DIR (default: .)"
+	@echo "  make agent-legal Q=...     Legal research advisor (public-record; attorney-tool)"
 	@echo "  make observe               GRIT Observe scored feeds (FEED=usgs_earthquakes optional)"
 	@echo "  make observe-fixture       Observe from offline fixtures (no network)"
+	@echo "  make console               Print URL for read-only operator console (API must be up)"
 	@echo ""
 	@echo "Logs written to:"
 	@echo "  - logs/router.jsonl"
@@ -149,6 +151,11 @@ skills-find:
 agent-steward:
 	@$(PYTHON) -m src.agents.repo_steward_agent "$(or $(DIR),.)"
 
+# Legal research advisor — CourtListener public-record; cite-or-refuse; never files
+agent-legal:
+	@if [ -z "$(Q)" ]; then echo 'Usage: make agent-legal Q="case law research for counsel: <issue>"'; exit 1; fi
+	@$(PYTHON) -m src.agents.legal_research_agent $(Q)
+
 # GRIT Observe — keyless feeds → fuse → evidence gate (no action)
 observe:
 	@if [ -n "$(FEED)" ]; then \
@@ -159,6 +166,14 @@ observe:
 
 observe-fixture:
 	@$(PYTHON) -m src.observe.run --fixture-dir tests/fixtures/observe
+
+# Read-only operator console (renders logs; never acts). Start API first: make run-agents
+console:
+	@echo "AgentGRIT operator console (READ-ONLY)"
+	@echo "  Open:  http://127.0.0.1:$${API_PORT:-8000}/console"
+	@echo "  Data:  http://127.0.0.1:$${API_PORT:-8000}/console/data"
+	@echo "  Start the API if needed:  python -m src.main --api-only"
+	@echo "  This UI only GETs logs — it cannot spawn tasks or approve escalations."
 
 .PHONY: hud
 hud:
