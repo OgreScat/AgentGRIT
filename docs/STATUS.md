@@ -8,7 +8,8 @@ integrations you are expected to wire to your own orchestrator.
 |---|---|---|
 | Bylaw engine (`src/governance/bylaws.py`) | **Solid** | Deterministic, tested. Blocks destructive patterns, escalates risk. |
 | Pillar Inspector (`src/governance/pillars.py`) | **Solid** | Deterministic 5-pillar scorecard, tested. |
-| Research quality (`src/governance/research_quality.py`) | **Solid** | Deterministic evidence gating, tested. |
+| Research quality (`src/governance/research_quality.py`) | **Solid** | Deterministic evidence gating + conflict detection (CONTESTED verdict), tested. |
+| Decision records (`src/governance/decision_record.py`) | **Solid** | Deterministic; composes router + bylaw + evidence into one auditable record; renders to plain text; append-only + fail-safe; tested. You call it from your agents. |
 | Research layer (`src/execution/research.py`, `research_providers.py`) | **Solid** | Free-first, provider-agnostic, budget-governed. DuckDuckGo works keyless; add your own provider keys. |
 | Deliberation (`src/governance/deliberation.py`) | **Working** | JR→Manager local-model review; requires a local model (Ollama). Fails safe to escalate. |
 | Trust ladder (`src/governance/trust.py`) | **Working** | State machine present; promotion/demotion policy is conservative by default. |

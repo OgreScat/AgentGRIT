@@ -1,10 +1,10 @@
 # AgentGRIT — How it moves
 
-Three diagrams, three questions: how a task moves through governance, what may
-run without a human, and how per-project doctrine shapes the agents. Every node
-names the module that implements it — the diagrams are checkable against the
-code, not marketing shapes. (System overview: [`architecture.svg`](architecture.svg)
-in the README.)
+Four diagrams, four questions: how a task moves through governance, what may
+run without a human, how per-project doctrine shapes the agents, and what the
+audit trail captures. Every node names the module that implements it — the
+diagrams are checkable against the code, not marketing shapes. (System overview:
+[`architecture.svg`](architecture.svg) in the README.)
 
 ## 1. Task lifecycle — classify, route, verify, prove
 
@@ -64,3 +64,27 @@ flowchart TD
 
 Personas and project configs ship empty by design — GRIT supplies the machinery
 and the constitution; you supply the specialists and the projects.
+
+## 4. Decision record — the auditable "why"
+
+```mermaid
+flowchart TD
+    R["router.RoutingDecision<br/>provider · cost · cheaper options passed over"] --> C["decision_record.compose()<br/>derives disposition deterministically"]
+    BY["bylaws.BylawResult<br/>proceed / escalate / block"] --> C
+    EV["research_quality.Assessment<br/>verdict · score · conflict signal"] --> C
+    C --> D{"Disposition"}
+    D -- "bylaw block" --> REF["REFUSED"]
+    D -- "sources disagree" --> CON["CONTESTED"]
+    D -- "escalate / require_human" --> ESC2["ESCALATED"]
+    D -- "cleared" --> PRO["PROCEED"]
+    REF --> W["record() → logs/decisions.jsonl<br/>append-only, fail-safe · render() → plain text"]
+    CON --> W
+    ESC2 --> W
+    PRO --> W
+```
+
+Every field traces to a real upstream result — nothing is invented or
+estimated-as-fact. This is the artifact a compliance reviewer reads: what was
+decided, the cheaper options passed over and why, the evidence behind it, and who
+or which threshold authorized it. See `src/governance/decision_record.py`
+(`python -m src.governance.decision_record` prints a sample of each disposition).
