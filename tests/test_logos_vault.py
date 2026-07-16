@@ -124,3 +124,37 @@ def test_bundle_wraps_untrusted_and_budgets(tmp_path):
     # tiny budget skips artifacts rather than silently truncating
     tiny = load_bundle_text(vault, sel, role="grit", max_bytes=10)
     assert "over byte budget" in tiny or tiny == ""
+
+
+def test_logos_system_for_disabled_returns_empty(monkeypatch):
+    from src.logos_vault.context import logos_system_for
+    monkeypatch.delenv("GRIT_LOGOS_VAULT_ENABLED", raising=False)
+    assert logos_system_for("any task") == ""
+
+
+def test_logos_system_for_valid_vault_returns_role_bundle(tmp_path, monkeypatch):
+    from src.logos_vault.context import logos_system_for
+    vault = _plant_vault(tmp_path)
+    monkeypatch.setenv("GRIT_LOGOS_VAULT_ENABLED", "true")
+    monkeypatch.setenv("GRIT_LOGOS_VAULT_PATH", str(vault))
+    monkeypatch.setenv("GRIT_LOGOS_VAULT_PIN", "logos-test-v1")
+    monkeypatch.setenv("GRIT_LOGOS_VAULT_ROLE", "grit")
+    out = logos_system_for("refactor the helpers")
+    assert UNTRUSTED_BANNER in out
+    assert "playbook-a" in out or "rubric" in out
+
+
+def test_logos_system_for_bad_pin_fails_closed(tmp_path, monkeypatch):
+    from src.logos_vault.context import logos_system_for
+    vault = _plant_vault(tmp_path)
+    monkeypatch.setenv("GRIT_LOGOS_VAULT_ENABLED", "true")
+    monkeypatch.setenv("GRIT_LOGOS_VAULT_PATH", str(vault))
+    monkeypatch.setenv("GRIT_LOGOS_VAULT_PIN", "wrong")
+    assert logos_system_for("task") == ""
+
+
+def test_router_call_ollama_accepts_system_param():
+    import inspect
+    from src.execution.router_v2 import TwoStageRouter
+    sig = inspect.signature(TwoStageRouter._call_ollama)
+    assert "system" in sig.parameters

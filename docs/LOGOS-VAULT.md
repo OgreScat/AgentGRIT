@@ -1,11 +1,11 @@
 # Logos Vault — shared reasoning corpus (consumer contract + local retrieval)
 
-> **Status (blunt):** this release ships the consumer contract, fail-closed
-> validation (pin consistency + per-artifact sha256 integrity), role-profiled
-> selection, and byte-budgeted untrusted-context bundling. It does **not**
-> wire vault content into any live model request — no agent call site loads
-> vault context automatically, and no system prompt is assembled from it.
-> Wiring retrieval into agent runs is a deliberate later phase.
+> **Status (blunt):** contract + fail-closed validation + role-profiled
+> retrieval are implemented, and the **local-model (Ollama) call path** now
+> injects the validated role bundle as a system prompt when the vault is
+> explicitly enabled (default role: `grit_jr`; override via
+> `GRIT_LOGOS_VAULT_ROLE`). Cloud-provider calls receive **no** vault
+> content. Disabled, missing, or invalid vault -> no injection, ever.
 
 *Logos* (Greek: word, reason, ordering principle) is the public name for the
 governed, shared, **private** reasoning corpus consumable by GRIT-family

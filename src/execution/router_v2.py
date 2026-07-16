@@ -454,10 +454,19 @@ class TwoStageRouter:
         if context:
             prompt = f"Context:\n{context}\n\nTask:\n{task}"
         
+        # Logos Vault: validated, role-profiled reference context for the
+        # local model (disabled by default; fail-closed; see docs/LOGOS-VAULT.md).
+        ollama_system: str | None = None
+        try:
+            from src.logos_vault.context import logos_system_for
+            ollama_system = logos_system_for(task) or None
+        except Exception:
+            ollama_system = None
+
         # Execute on provider
         try:
             if decision.provider == Provider.OLLAMA:
-                response, tokens = await self._call_ollama(prompt)
+                response, tokens = await self._call_ollama(prompt, system=ollama_system)
             elif decision.provider == Provider.PERPLEXITY:
                 response, tokens = await self._call_perplexity(prompt)
             elif decision.provider == Provider.GROK:
@@ -468,7 +477,7 @@ class TwoStageRouter:
             # On failure, try fallback
             fallback = Provider.OLLAMA
             try:
-                response, tokens = await self._call_ollama(prompt)
+                response, tokens = await self._call_ollama(prompt, system=ollama_system)
                 decision.provider = fallback
                 decision.fallback_used = True
             except Exception as e2:
@@ -507,15 +516,18 @@ class TwoStageRouter:
         """Calculate cost for a request."""
         return (tokens / 1000) * PROVIDER_COSTS.get(provider, 0.001)
     
-    async def _call_ollama(self, prompt: str) -> tuple[str, int]:
-        """Call Ollama (FREE)."""
+    async def _call_ollama(self, prompt: str, system: str | None = None) -> tuple[str, int]:
+        """Call Ollama (FREE). Optional system prompt = Logos Vault context."""
         base_url = self.config.get("ollama_base_url", "http://localhost:11434")
         model = self.config.get("ollama_model", "gemma4:12b")
+        body = {"model": model, "prompt": prompt, "stream": False}
+        if system:
+            body["system"] = system
         
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
                 f"{base_url}/api/generate",
-                json={"model": model, "prompt": prompt, "stream": False},
+                json=body,
             )
             data = response.json()
             return data.get("response", ""), data.get("eval_count", 0)
