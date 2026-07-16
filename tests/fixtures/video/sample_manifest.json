@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "bundle_id": "fixture-sample-001",
+  "source": {
+    "uri": "fixture://sample-demo.mp4",
+    "checksum_sha256": "deadbeef",
+    "duration_s": 30.0,
+    "codec": "h264",
+    "width": 1280,
+    "height": 720,
+    "fps": 30.0,
+    "acquisition": "fixture",
+    "captions_available": true
+  },
+  "policy": {
+    "sensitivity": "public",
+    "privacy_boundary": "local_only",
+    "allowed_model_classes": ["A", "B", "C"],
+    "retention": "session"
+  },
+  "segments": [
+    {"start_s": 0, "end_s": 15, "shot_type": "talking_head", "motion_score": 0.2, "speech_density": 0.8, "ocr_density": 0.1},
+    {"start_s": 15, "end_s": 30, "shot_type": "screen", "motion_score": 0.4, "speech_density": 0.3, "ocr_density": 0.7}
+  ],
+  "frames": [
+    {"frame_id": "f0001", "t_s": 1.0, "path": "artifacts/sample/f0001.jpg", "thumb_hash": "a", "ocr_text": "", "visual_tags": ["speaker"]},
+    {"frame_id": "f0002", "t_s": 16.0, "path": "artifacts/sample/f0002.jpg", "thumb_hash": "b", "ocr_text": "Login", "visual_tags": ["ui"]}
+  ],
+  "transcript": [
+    {"t_start_s": 0.0, "t_end_s": 3.0, "text": "Welcome to the demo.", "source": "native_caption", "confidence": 0.95},
+    {"t_start_s": 16.0, "t_end_s": 18.0, "text": "Here is the settings panel.", "source": "native_caption", "confidence": 0.9}
+  ],
+  "provenance": {
+    "tools": [{"name": "fixture", "version": "1"}],
+    "commands": [],
+    "warnings": [],
+    "missing": ["ocr", "diarization"]
+  },
+  "focus": {"start_s": null, "end_s": null, "timestamps": []},
+  "extraction_policy": {"mode": "balanced", "max_frames": 48, "dedup": true}
+}
