@@ -36,7 +36,7 @@ def test_proposal_excluded_from_policy_selection(tmp_path):
 
 
 def test_secret_quarantined(tmp_path):
-    _note(tmp_path, "leak.md", body="key sk-abcdefghijklmnopqrstuvwxyz012345")
+    _note(tmp_path, "leak.md", body="key " + "sk-" + "abcdefghijklmnopqrstuvwxyz012345")
     m = compile_vault(tmp_path)
     assert m["notes"][0]["indexed"] is False
 

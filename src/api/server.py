@@ -201,52 +201,34 @@ async def system_status() -> dict[str, Any]:
 # TASK MANAGEMENT
 # ═══════════════════════════════════════════════════════════════════════════════
 
-@app.post("/tasks/spawn", response_model=TaskResponse, tags=["Tasks"])
-async def spawn_task(request: TaskSpawnRequest) -> TaskResponse:
-    """Spawn a new agent task."""
-    task_id = f"GRIT-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
-    
-    # TODO: Actually spawn task via orchestrator
-    
-    logger.info("Task spawned", task_id=task_id, description=request.description)
-    
-    return TaskResponse(
-        task_id=task_id,
-        status="queued",
-        description=request.description,
-        created_at=datetime.utcnow().isoformat() + "Z",
-        message="Task queued for execution",
-    )
+_TASKS_NOT_IMPLEMENTED = (
+    "Task orchestration is not enabled in this OSS release. This API "
+    "intentionally refuses to fake execution state. Real activity is "
+    "visible in decision records: GET /console/data?screen=tasks."
+)
+_NI_RESPONSES: dict[int | str, dict[str, Any]] = {
+    501: {"description": "Task orchestration not implemented in this release"},
+}
 
 
-@app.get("/tasks/{task_id}", response_model=TaskResponse, tags=["Tasks"])
-async def get_task(task_id: str) -> TaskResponse:
-    """Get task status."""
-    # TODO: Look up actual task
-    
-    return TaskResponse(
-        task_id=task_id,
-        status="running",
-        description="Task description",
-        created_at=datetime.utcnow().isoformat() + "Z",
-    )
+@app.post("/tasks/spawn", tags=["Tasks"], responses=_NI_RESPONSES)
+async def spawn_task(request: TaskSpawnRequest) -> None:
+    """Spawn a new agent task — NOT IMPLEMENTED (honest 501, no fake state)."""
+    raise HTTPException(status_code=501, detail=_TASKS_NOT_IMPLEMENTED)
 
 
-@app.get("/tasks", tags=["Tasks"])
-async def list_tasks(status: str | None = None, limit: int = 20) -> dict[str, Any]:
-    """List tasks with optional filtering."""
-    # TODO: Get actual tasks from database
-    
-    return {
-        "tasks": [],
-        "total": 0,
-        "filter": {"status": status, "limit": limit},
-    }
+@app.get("/tasks/{task_id}", tags=["Tasks"], responses=_NI_RESPONSES)
+async def get_task(task_id: str) -> None:
+    """Get task status — NOT IMPLEMENTED (honest 501, no fake state)."""
+    raise HTTPException(status_code=501, detail=_TASKS_NOT_IMPLEMENTED)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# GOVERNANCE
-# ═══════════════════════════════════════════════════════════════════════════════
+@app.get("/tasks", tags=["Tasks"], responses=_NI_RESPONSES)
+async def list_tasks(status: str | None = None, limit: int = 20) -> None:
+    """List tasks — NOT IMPLEMENTED (honest 501, no fake state)."""
+    raise HTTPException(status_code=501, detail=_TASKS_NOT_IMPLEMENTED)
+
+
 
 @app.get("/governance/trust", tags=["Governance"])
 async def get_trust_levels() -> dict[str, Any]:
