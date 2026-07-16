@@ -61,7 +61,7 @@ promotes them.
 | Role | Receives (approved artifacts only) | Budget |
 |---|---|---|
 | **GRIT JR** | task playbooks, standing instructions | 2 artifacts / 16 KB |
-| **GRIT** | playbooks, routing rubrics, operator manuals, model profiles | 4 / 32 KB |
+| **GRIT** | synthesis doctrine, playbooks, routing rubrics, operator manuals, model profiles | 5 / 40 KB |
 | **GRIT GM** | doctrine, evals, trap tests, routing rubrics, operator manuals | 6 / 48 KB |
 | **SUPER GM** | doctrine (incl. the review protocol), evals, trap tests, rubrics, manuals, model profiles, playbooks | 8 / 64 KB |
 

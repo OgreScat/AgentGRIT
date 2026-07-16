@@ -41,10 +41,10 @@ ROLE_PROFILES: dict[str, RoleProfile] = {
     "grit": RoleProfile(
         role="grit",
         allowed_types=frozenset({
-            "playbook", "routing_rubric", "operator_manual", "model_profile",
+            "doctrine", "playbook", "routing_rubric", "operator_manual", "model_profile",
         }),
-        max_artifacts=4,
-        max_bytes=32_000,
+        max_artifacts=5,
+        max_bytes=40_000,
         description="Core executor: decision frameworks + routing rubrics.",
     ),
     "grit_gm": RoleProfile(

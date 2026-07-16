@@ -167,3 +167,11 @@ def test_super_gm_profile_selects_doctrine(tmp_path):
     assert any(a.artifact_type == "doctrine" for a in sel)
     assert all(a.artifact_type != "raw_handoff" for a in sel)
     assert ROLE_PROFILES["super_gm"].max_bytes >= ROLE_PROFILES["grit_gm"].max_bytes
+
+
+def test_grit_receives_doctrine(tmp_path):
+    """The synthesis (doctrine) reaches the GRIT tier, not only GM/SUPER GM."""
+    vault = _plant_vault(tmp_path)
+    report = validate_vault(_cfg(vault))
+    sel = select_for_role(report.manifest, "grit")
+    assert any(a.artifact_type == "doctrine" for a in sel)
