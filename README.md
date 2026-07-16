@@ -38,7 +38,7 @@ AgentGRIT gives you two different tools depending on what you're doing:
 
 | Entry point | What it's for |
 |---|---|
-| `python -m src.main` | Runs the agent orchestrator, API server, and Telegram bot -- the place your own registered agents actually execute. |
+| `python -m src.main` | Runs the agent orchestrator, API server, and (only if configured) the optional Telegram bot -- the place your own registered agents actually execute. |
 | `python grit.py govern "<task>"` | A standalone cost-governance CLI: plans a task, decides which model tier it's worth, and verifies the outcome afterward -- independent of whatever coding agent actually runs it. |
 
 They're complementary. `main.py` is where long-running or scheduled agents live; `grit.py` is a lightweight gate you can put in front of any one-off task, including tasks run through other tools entirely.
@@ -67,11 +67,11 @@ make agentgrit-smoketest
 # Start the continuous observer loop
 make run
 
-# Or start everything (API + Telegram + any agents you've registered)
+# Or start everything (API + any agents you've registered; Telegram only if configured)
 python -m src.main
 ```
 
-Nothing runs unattended by default -- `python -m src.main` with no agents registered starts the API and Telegram bot but does not invoke any agent logic. See `QUICKSTART-AGENTS.md` for registering your first one.
+Nothing runs unattended by default -- `python -m src.main` with no agents registered starts the API (plus the Telegram bot only if a token is configured -- Telegram is optional; any notification channel can be wired instead, see docs/NOTIFICATIONS.md) but does not invoke any agent logic. See `QUICKSTART-AGENTS.md` for registering your first one.
 
 ---
 

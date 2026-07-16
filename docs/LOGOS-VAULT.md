@@ -63,6 +63,14 @@ promotes them.
 | **GRIT JR** | task playbooks, standing instructions | 2 artifacts / 16 KB |
 | **GRIT** | playbooks, routing rubrics, operator manuals, model profiles | 4 / 32 KB |
 | **GRIT GM** | doctrine, evals, trap tests, routing rubrics, operator manuals | 6 / 48 KB |
+| **SUPER GM** | doctrine (incl. the review protocol), evals, trap tests, rubrics, manuals, model profiles, playbooks | 8 / 64 KB |
+
+The intended hierarchy: **GRIT JR** works a project's minute tasks under the
+drone contract; **GRIT** executes the project's larger work and checks JR;
+**GRIT GM** leads one project and resolves most issues itself; **SUPER GM**
+is the cross-project reviewer that grades, reassigns, and briefs the human —
+only HIGH/CRITICAL decisions pass beyond it. Every tier is accountable to
+the tiers around it; no tier outranks governance.
 
 All roles: `raw_handoff` artifacts are never selectable; unknown roles
 select nothing (fail closed); bundles are wrapped in an UNTRUSTED banner

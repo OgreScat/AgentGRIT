@@ -158,3 +158,12 @@ def test_router_call_ollama_accepts_system_param():
     from src.execution.router_v2 import TwoStageRouter
     sig = inspect.signature(TwoStageRouter._call_ollama)
     assert "system" in sig.parameters
+
+
+def test_super_gm_profile_selects_doctrine(tmp_path):
+    vault = _plant_vault(tmp_path)
+    report = validate_vault(_cfg(vault))
+    sel = select_for_role(report.manifest, "super_gm")
+    assert any(a.artifact_type == "doctrine" for a in sel)
+    assert all(a.artifact_type != "raw_handoff" for a in sel)
+    assert ROLE_PROFILES["super_gm"].max_bytes >= ROLE_PROFILES["grit_gm"].max_bytes

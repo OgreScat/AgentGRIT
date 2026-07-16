@@ -56,6 +56,16 @@ ROLE_PROFILES: dict[str, RoleProfile] = {
         max_bytes=48_000,
         description="Senior reviewer: standards, risk checklists, evals.",
     ),
+    "super_gm": RoleProfile(
+        role="super_gm",
+        allowed_types=frozenset({
+            "doctrine", "eval", "trap_tests", "routing_rubric",
+            "operator_manual", "model_profile", "playbook",
+        }),
+        max_artifacts=8,
+        max_bytes=64_000,
+        description="Cross-project reviewer: grades, optimizes assignments, briefs the human.",
+    ),
 }
 
 
