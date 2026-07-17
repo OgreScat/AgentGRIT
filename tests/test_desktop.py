@@ -46,3 +46,18 @@ def test_desktop_three_lens_and_labels():
     assert "FABLE" in HTML and "GROK" in HTML and "TERRA" in HTML
     for tok in ("CERTAIN", "LIKELY", "ASSUMPTION", "UNKNOWN"):
         assert tok.lower() in HTML.lower()
+
+
+def test_desktop_v2_layer_present():
+    """V2 cinematic layer: swarm chat, instruments, editor, neural field."""
+    for marker in ("core-war-room", "Message the swarm", "modelsel", "tokmeter",
+                   "bgfx", "delegated_authority.yaml", "never_may", "typing",
+                   "fgraph", "Policy Editor"):
+        assert marker in HTML, marker
+
+
+def test_desktop_v2_still_never_acts():
+    """The chat/editor layer simulates; the model preference cannot under-floor."""
+    assert "SIMULATED" in HTML
+    assert "never under-floor" in HTML or "can never under-floor" in HTML
+    assert "self_expand_authority" in HTML

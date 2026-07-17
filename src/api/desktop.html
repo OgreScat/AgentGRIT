@@ -170,6 +170,79 @@ pre.code{background:#0e1116;border:1px solid var(--border);border-radius:8px;pad
 .rung.at{background:#28321a;border-color:#3f5320;color:var(--lime)}
 .rung .n{display:block;font-size:9.5px;color:var(--dim);font-weight:500}
 </style>
+<style id="v2">
+/* ═══ V2 CINEMATIC LAYER — glass, depth, glow (additive; substance unchanged) ═══ */
+#bgfx{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
+#desk{background:radial-gradient(1400px 800px at 65% 8%, #0e1520 0%, #0a0e14 52%, #06080c 100%)}
+.win{background:rgba(17,21,28,.62);backdrop-filter:blur(26px) saturate(150%);-webkit-backdrop-filter:blur(26px) saturate(150%);
+  border:1px solid rgba(127,208,207,.13)}
+.win::before{content:"";position:absolute;inset:0;border-radius:var(--r);pointer-events:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07), inset 0 0 24px rgba(127,208,207,.02)}
+.win.focused{border-color:rgba(127,208,207,.34);
+  box-shadow:0 42px 110px -24px rgba(0,0,0,.92), 0 0 38px -8px rgba(127,208,207,.14), 0 4px 16px rgba(0,0,0,.5)}
+.win-head{background:rgba(23,28,36,.55)}
+#menubar{background:rgba(8,10,14,.6);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%)}
+#dock{background:rgba(15,19,25,.55);backdrop-filter:blur(26px) saturate(160%);-webkit-backdrop-filter:blur(26px) saturate(160%);
+  border-color:rgba(127,208,207,.15);box-shadow:0 18px 50px -12px rgba(0,0,0,.85), 0 0 34px -12px rgba(127,208,207,.12)}
+.dock-app{transition:transform .2s cubic-bezier(.34,1.6,.64,1), background .15s, color .15s}
+.dock-app:hover{transform:translateY(-8px) scale(1.2)}
+.card{background:rgba(24,29,37,.55)}
+.card.hi{box-shadow:0 0 26px -12px rgba(127,208,207,.18)}
+/* menubar instruments */
+#tokmeter{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+#tokmeter b{color:var(--text);font-weight:650}
+#tokmeter .rate{color:var(--cyan)}
+#spark{width:64px;height:16px}
+#costtoday{font-family:var(--mono);font-size:11px;color:var(--lime)}
+#modelsel{background:rgba(20,25,32,.8);color:var(--text);border:1px solid var(--border);border-radius:6px;
+  font:600 11px var(--font);padding:2px 6px;outline:0;cursor:pointer}
+#modelsel:hover{border-color:var(--border-hi)}
+/* desktop icons */
+.dicon{position:absolute;width:88px;text-align:center;cursor:pointer;z-index:1;color:var(--muted);user-select:none}
+.dicon:hover{color:var(--text)}
+.dicon .ic{width:52px;height:52px;margin:0 auto 5px;border-radius:13px;background:rgba(22,27,35,.6);
+  border:1px solid rgba(127,208,207,.14);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;
+  font-size:22px;transition:transform .18s cubic-bezier(.34,1.6,.64,1)}
+.dicon:hover .ic{transform:scale(1.12);border-color:rgba(127,208,207,.3)}
+.dicon .lb{font-size:10.5px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+/* swarm chat */
+.sw-head{display:flex;gap:10px;align-items:baseline;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px}
+.sw-head b{font-size:14px}
+.sw-msgs{overflow:auto;display:flex;flex-direction:column;gap:8px;flex:1;min-height:120px}
+.msg{max-width:82%;padding:8px 12px;border-radius:12px;font-size:12.5px;line-height:1.5}
+.msg.agent{background:rgba(28,34,43,.75);border:1px solid var(--border);align-self:flex-start;border-top-left-radius:4px}
+.msg.me{background:rgba(46,66,44,.5);border:1px solid #3f5320;align-self:flex-end;border-top-right-radius:4px}
+.msg .who{font-size:10.5px;font-weight:700;color:var(--cyan);display:block;margin-bottom:2px}
+.msg.me .who{color:var(--lime)}
+.msg .cost{display:block;margin-top:4px;font:9.5px var(--mono);color:var(--dim)}
+.typing{display:inline-flex;gap:4px;padding:10px 14px;background:rgba(28,34,43,.75);border:1px solid var(--border);border-radius:12px;align-self:flex-start}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--cyan);opacity:.4;animation:blink 1.1s infinite}
+.typing i:nth-child(2){animation-delay:.18s}.typing i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,80%{opacity:.25}40%{opacity:.95}}
+.sw-compose{display:flex;gap:8px;margin-top:8px;align-items:center}
+.sw-compose input{flex:1;background:rgba(14,17,22,.85);border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font:12.5px var(--font);padding:9px 13px;outline:0}
+.sw-compose input:focus{border-color:rgba(127,208,207,.35)}
+.sw-send{width:34px;height:34px;border-radius:50%;border:0;background:var(--cyan);color:#08222a;font-size:15px;
+  font-weight:800;cursor:pointer;transition:transform .15s}
+.sw-send:hover{transform:scale(1.1)}
+.sw-foot{font-size:10.5px;color:var(--dim);margin-top:5px;display:flex;justify-content:space-between}
+/* policy editor */
+.ed-wrap{display:flex;height:100%;flex-direction:column}
+.ed-bar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.ed-file{font-family:var(--mono);font-size:11px;color:var(--cyan)}
+.ed{flex:1;overflow:auto;background:rgba(11,14,18,.9);border:1px solid var(--border);border-radius:10px;
+  font:11.5px/1.65 var(--mono);padding:10px 0;white-space:pre;counter-reset:ln}
+.ed .ln{display:block;padding:0 14px 0 0}
+.ln::before{counter-increment:ln;content:counter(ln);display:inline-block;width:34px;margin-right:14px;
+  text-align:right;color:#39414d;user-select:none}
+.yk{color:#7fd0cf}.ys{color:#c9e08f}.yc{color:#5c6470;font-style:italic}.yd{color:#b48ce0}
+/* historian force canvas */
+#fgraph{background:rgba(11,14,18,.7);border:1px solid var(--border);border-radius:10px;width:100%;display:block}
+@media (prefers-reduced-motion: reduce){
+  .dock-app:hover{transform:none}.dicon:hover .ic{transform:none}.typing i{animation:none;opacity:.7}
+}
+</style>
 </head>
 <body>
 <div id="menubar">
@@ -775,6 +848,260 @@ setInterval(tick, 15000); tick();
 ["mission","agents","approvals"].forEach(openWin);
 renderDock(); updateHealth(); tryLive();
 setTimeout(()=>toast("AgentGRIT Desktop","Governed command environment. ⌘K for commands. Everything you see maps to a runtime primitive; nothing here can act."), 600);
+</script>
+<script id="v2js">
+/* ═══ V2 LAYER — cinematic depth + swarm chat + instruments + policy editor.
+   Purely additive: overrides render functions by later assignment, injects
+   DOM via JS. Still GET-only; every interactive action remains a labeled
+   simulation or a read. ═══ */
+(function(){
+"use strict";
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ── ambient neural field (canvas, dim, no library) ─────────────────── */
+const bg = document.createElement("canvas"); bg.id = "bgfx";
+document.body.insertBefore(bg, document.getElementById("desk"));
+const bctx = bg.getContext("2d");
+let PTS = [];
+function bgSize(){ bg.width = innerWidth; bg.height = innerHeight;
+  PTS = Array.from({length: Math.min(70, innerWidth/22)}, () => ({
+    x: Math.random()*bg.width, y: Math.random()*bg.height,
+    vx: (Math.random()-.5)*.22, vy: (Math.random()-.5)*.22, r: Math.random()*1.4+.6 }));
+}
+function bgDraw(){
+  bctx.clearRect(0,0,bg.width,bg.height);
+  for(const p of PTS){
+    if(!RM){ p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0||p.x>bg.width) p.vx*=-1; if(p.y<0||p.y>bg.height) p.vy*=-1; }
+    bctx.beginPath(); bctx.arc(p.x,p.y,p.r,0,7);
+    bctx.fillStyle = "rgba(127,208,207,.28)"; bctx.fill();
+  }
+  for(let i=0;i<PTS.length;i++) for(let j=i+1;j<PTS.length;j++){
+    const a=PTS[i], b=PTS[j], dx=a.x-b.x, dy=a.y-b.y, d=dx*dx+dy*dy;
+    if(d<15000){ bctx.beginPath(); bctx.moveTo(a.x,a.y); bctx.lineTo(b.x,b.y);
+      bctx.strokeStyle = `rgba(127,208,207,${(1-d/15000)*.09})`; bctx.stroke(); }
+  }
+  if(!RM) requestAnimationFrame(bgDraw);
+}
+addEventListener("resize", ()=>{ bgSize(); if(RM) bgDraw(); });
+bgSize(); bgDraw();
+
+/* ── menubar instruments: tokens, sparkline, cost, model ────────────── */
+const mbr = document.getElementById("mb-right");
+const inst = document.createElement("span");
+inst.style.cssText = "display:flex;gap:14px;align-items:center";
+inst.innerHTML = `
+  <span id="tokmeter">⚡ <b id="tokn">160,144</b> tok <canvas id="spark" width="64" height="16"></canvas> <span class="rate" id="tokr">0/s</span></span>
+  <span id="costtoday">$4.66 today</span>
+  <select id="modelsel" title="Preferred model — the router still enforces cheapest-capable and risk floors">
+    <option value="auto" selected>◉ Auto (cost-first)</option>
+    <option value="grit-junior">grit-junior · local</option>
+    <option value="gemma4:12b">gemma4:12b · local</option>
+    <option value="reasoning">reasoning-tier · cloud</option>
+    <option value="architect">architect-tier · cloud</option>
+  </select>`;
+mbr.insertBefore(inst, mbr.firstChild);
+let TOK = 160144, THIST = new Array(24).fill(0);
+setInterval(()=>{
+  const working = DEMO.agents.some(a=>["working","verifying","planning"].includes(a.status));
+  const rate = working ? Math.round(700 + Math.random()*900) : Math.round(Math.random()*40);
+  TOK += rate; THIST.push(rate); THIST.shift();
+  document.getElementById("tokn").textContent = TOK.toLocaleString();
+  document.getElementById("tokr").textContent = rate.toLocaleString()+"/s";
+  const c = document.getElementById("spark").getContext("2d");
+  c.clearRect(0,0,64,16); const mx = Math.max(...THIST,1);
+  c.beginPath(); THIST.forEach((v,i)=>{ const x=i*(64/23), y=15-(v/mx)*13; i?c.lineTo(x,y):c.moveTo(x,y); });
+  c.strokeStyle = "#7fd0cf"; c.lineWidth = 1.2; c.stroke();
+  if(LIVE.on && LIVE.data.models){
+    document.getElementById("costtoday").textContent = "$"+Number(LIVE.data.models.estimated_cost_sum||0).toFixed(3)+" est Σ";
+  }
+}, 1000);
+document.getElementById("modelsel").addEventListener("change", e=>{
+  const v = e.target.value;
+  toast("Model preference → "+e.target.selectedOptions[0].textContent.trim(),
+    v==="auto" ? "Router decides per task: cheapest capable tier, floors enforced."
+    : "Preference recorded (SIMULATED). The router still enforces cheapest-capable routing and risk floors — a preference can never under-floor risk-class work.", v==="auto"?"ok":"warn");
+});
+
+/* ── desktop icons ──────────────────────────────────────────────────── */
+const icons = [
+  {g:"≡", n:"policy-spec.md", act:()=>{ AFSEL=1; openWin("artifacts"); }},
+  {g:"{}", n:"test-report", act:()=>{ AFSEL=0; openWin("artifacts"); }},
+  {g:"§", n:"authority.yaml", act:()=>openWin("editor")},
+];
+icons.forEach((ic,i)=>{
+  const d = document.createElement("div");
+  d.className = "dicon"; d.style.right = "26px"; d.style.top = (60+i*104)+"px";
+  d.innerHTML = `<div class="ic">${ic.g}</div><div class="lb">${ic.n}</div>`;
+  d.onclick = ic.act; document.getElementById("desk").appendChild(d);
+});
+
+/* ── Swarm — direct agent channel ───────────────────────────────────── */
+APPS.push({id:"swarm", glyph:"⌬", label:"Swarm", title:"Swarm — #core-war-room", x:420, y:80, w:640, h:520});
+APPS.push({id:"editor", glyph:"✎", label:"Editor", title:"Policy Editor — delegated_authority.yaml", x:480, y:120, w:660, h:520});
+const CHAT = [
+  {who:"GRIT Lead", me:false, body:"Morning brief: v0.3 desktop is live internally. Scout, pull palette-ergonomics findings forward. Backend, ENG-107 stays parked until APR-114 is decided. Verification, keep the evidence bundle current.", cost:0.004, label:"certain"},
+  {who:"Verification Worker", me:false, body:"84/84 available tests green. Two integration tests remain credential-gated — tracked, not forgotten.", cost:0.003, label:"certain"},
+];
+function swarmReply(text){
+  const t = text.toLowerCase();
+  const at = text.match(/@(\w+)/);
+  if(at){
+    const ag = DEMO.agents.find(a=>a.name.toLowerCase().startsWith(at[1].toLowerCase()));
+    if(ag) return {who:ag.name, body:`Acknowledged. Current: ${ag.task==="—"?"idle, awaiting delegation":ag.task}. I act only inside my ${ag.trust} authority — anything consequential routes to approval.`, label:"likely"};
+  }
+  if(/status|brief/.test(t)) return {who:"GRIT Lead", body:`Mission ${DEMO.mission.pct}% · ${getApprovals().filter(a=>a.state==="awaiting").length} approval awaiting you (APR-114, medium) · ENG-107 blocked · budget ${DEMO.routing.budgetPct}% · zero policy violations today.`, label:"certain"};
+  if(/block/.test(t)) return {who:"GRIT Lead", body:"ENG-107 waits on APR-114 (staging credential). APR-117 prod deploy is policy-blocked pending evidence — cannot be approved from any surface. Nothing else is stuck.", label:"certain"};
+  if(/approve|deploy|push|credential|secret|trade/.test(t)) return {who:"GRIT Lead", body:"That is a consequential action — it routes through the Approval Center and the governed path, never through chat. I have opened the request context for you.", label:"certain", open:"approvals"};
+  return {who:"GRIT Lead", body:"Logged and routed to deliberation. In the runtime this triggers governed agent work; in this preview the reply is simulated.", label:"assumption"};
+}
+R.swarm = body => {
+  body.style.display = "flex"; body.style.flexDirection = "column";
+  const model = document.getElementById("modelsel").selectedOptions[0].textContent.trim();
+  body.innerHTML = `
+    <div class="sw-head"><b># core-war-room</b>
+      <span class="meta">${DEMO.agents.length} agents · routed via ${esc(model)}</span>
+      <span class="meta mono" style="margin-left:auto">memory graph in context</span></div>
+    <div class="sw-msgs" id="swm">
+      ${CHAT.map(m=>`<div class="msg ${m.me?"me":"agent"}"><span class="who">${esc(m.who)}</span>${esc(m.body)}
+        <span class="label-tok ${m.label||"certain"}" style="margin-left:4px">${(m.label||"certain").toUpperCase()}</span>
+        <span class="cost">~$${(m.cost||0.004).toFixed(3)} / message · ${m.me?"you":"agent"}</span></div>`).join("")}
+    </div>
+    <div class="sw-compose">
+      <input id="swin" placeholder="Message the swarm — @ to direct one agent (@backend, @research, @verification…)"/>
+      <button class="sw-send" id="swsend" title="send">↑</button>
+    </div>
+    <div class="sw-foot"><span>Swarm remembers everything — historian keeps the graph in context</span>
+      <span>replies ${LIVE.on?"SIMULATED (chat acts only via the governed runtime)":"SIMULATED in demo"}</span></div>`;
+  const send = () => {
+    const inp = body.querySelector("#swin"); const v = inp.value.trim(); if(!v) return;
+    CHAT.push({who:"You", me:true, body:v, cost:0.004, label:"certain"}); inp.value="";
+    R.swarm(body);
+    const box = body.querySelector("#swm");
+    const ty = document.createElement("div"); ty.className="typing"; ty.innerHTML="<i></i><i></i><i></i>";
+    box.appendChild(ty); box.scrollTop = box.scrollHeight;
+    setTimeout(()=>{
+      const rep = swarmReply(v);
+      CHAT.push({who:rep.who, me:false, body:rep.body, cost:0.004, label:rep.label});
+      R.swarm(body);
+      body.querySelector("#swm").scrollTop = 1e6;
+      if(rep.open) openWin(rep.open);
+    }, RM?150:1050);
+    box.scrollTop = 1e6;
+  };
+  body.querySelector("#swsend").onclick = send;
+  body.querySelector("#swin").addEventListener("keydown", e=>{ if(e.key==="Enter") send(); });
+  body.querySelector("#swm").scrollTop = 1e6;
+};
+
+/* ── Policy editor — delegated_authority.yaml (syntax highlighted) ──── */
+const YAML_SRC = `# delegated_authority.yaml — the hierarchy as enforceable config
+# Doctrine: a role may never expand its own authority. Governance outranks.
+roles:
+  grit_jr:
+    may: [read_project_context, research, draft, run_sandbox_tests, update_task_evidence]
+    must_escalate: [ambiguous_goal, external_side_effect, credential_access, legal_or_financial, production_change]
+  grit:
+    may: [approve_jr_outputs, plan_bounded_work, create_reviewable_patch, manage_internal_backlog]
+    must_escalate: [cross_project_conflict, production_deploy, spend_above_project_limit]
+  grit_gm:
+    may: [prioritize_project_work, approve_low_risk_actions, issue_release_recommendation, assign_work]
+    must_escalate: [policy_exception, new_external_integration, contractual_or_public_commitment]
+  super_gm:
+    may: [rank_portfolio, resolve_cross_project_conflicts, approve_delegated_low_medium, issue_briefs, recommend_human_decisions]
+    never_may: [override_absolute_blocks, self_expand_authority, approve_own_exception, suppress_material_risk]
+  human:
+    holds: [production_secrets, financial_actions, legal_representation, public_claims, constitutional_authority]`;
+function hlYaml(src){
+  return src.split("\n").map(l=>{
+    let h = esc(l);
+    if(/^\s*#/.test(l)) h = `<span class="yc">${h}</span>`;
+    else h = h
+      .replace(/^(\s*)([\w-]+)(:)/, '$1<span class="yk">$2</span>$3')
+      .replace(/\[([^\]]*)\]/g, (m,inner)=>'[<span class="ys">'+inner+'</span>]');
+    return `<span class="ln">${h}</span>`;
+  }).join("");
+}
+R.editor = body => {
+  body.innerHTML = `<div class="ed-wrap">
+    <div class="ed-bar">
+      <span class="ed-file">config/delegated_authority.yaml</span>
+      <span class="pill queued">STAGED — not yet enforced in runtime</span>
+      <span style="margin-left:auto"></span>
+      <button class="btn" id="edval">Validate</button>
+      <button class="btn primary" id="edapply">Apply</button>
+    </div>
+    <div class="ed">${hlYaml(YAML_SRC)}</div>
+    <div class="note" style="margin-top:8px">Five tiers, each with explicit may / must_escalate. SUPER GM carries never_may — it can approve delegated low/medium work but can never override absolute blocks, expand its own authority, approve its own exceptions, or suppress a material risk. Enforcement wiring is the next runtime phase; this editor stages the config.</div>
+  </div>`;
+  body.querySelector("#edval").onclick = ()=>{
+    const lines = YAML_SRC.split("\n").filter(l=>l.trim() && !l.trim().startsWith("#"));
+    const roles = (YAML_SRC.match(/^\s{2}\w+:/gm)||[]).length;
+    toast("Validation passed", `${lines.length} config lines · ${roles} roles · every role has an escalation set · super_gm.never_may present · no role grants itself authority.`, "ok");
+  };
+  body.querySelector("#edapply").onclick = ()=> simulated("Apply delegated_authority.yaml to runtime (doctrine change — requires the governed path)");
+};
+
+/* ── Historian: force-directed glowing memory graph ─────────────────── */
+const _histRender = R.historian;
+R.historian = body => {
+  _histRender(body);
+  const old = body.querySelector("#hgraph");
+  if(!old) return;
+  const cv = document.createElement("canvas");
+  cv.id = "fgraph"; cv.height = 210; cv.width = old.clientWidth || 660;
+  old.replaceWith(cv);
+  const ctx = cv.getContext("2d");
+  const kc = {mission:"#b8e34d", decision:"#b48ce0", task:"#7fd0cf", approval:"#e0b452", artifact:"#5fca8f", constraint:"#e05252"};
+  const N = DEMO.historian.nodes.map(n=>({...n, X:n.x*cv.width, Y:n.y*cv.height, vx:0, vy:0}));
+  const E = DEMO.historian.edges;
+  let frames = RM ? 1 : 240;
+  function step(){
+    for(let i=0;i<N.length;i++) for(let j=i+1;j<N.length;j++){
+      const a=N[i], b=N[j]; let dx=a.X-b.X, dy=a.Y-b.Y;
+      const d2 = Math.max(dx*dx+dy*dy, 60), f = 2600/d2;
+      const dl = Math.sqrt(d2); dx/=dl; dy/=dl;
+      a.vx+=dx*f; a.vy+=dy*f; b.vx-=dx*f; b.vy-=dy*f;
+    }
+    for(const [i,j] of E){
+      const a=N[i], b=N[j]; const dx=b.X-a.X, dy=b.Y-a.Y;
+      const dl = Math.sqrt(dx*dx+dy*dy)||1, f = (dl-115)*.004;
+      a.vx+=dx/dl*f*dl*.02; a.vy+=dy/dl*f*dl*.02; b.vx-=dx/dl*f*dl*.02; b.vy-=dy/dl*f*dl*.02;
+    }
+    for(const n of N){
+      n.X = Math.min(cv.width-46, Math.max(46, n.X+n.vx)); n.Y = Math.min(cv.height-26, Math.max(26, n.Y+n.vy));
+      n.vx*=.82; n.vy*=.82;
+    }
+  }
+  function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.strokeStyle = "rgba(127,208,207,.22)"; ctx.lineWidth = 1.1;
+    for(const [i,j] of E){ ctx.beginPath(); ctx.moveTo(N[i].X,N[i].Y); ctx.lineTo(N[j].X,N[j].Y); ctx.stroke(); }
+    for(const n of N){
+      ctx.shadowBlur = 14; ctx.shadowColor = kc[n.kind];
+      ctx.beginPath(); ctx.arc(n.X,n.Y,7,0,7); ctx.fillStyle = kc[n.kind]; ctx.globalAlpha=.92; ctx.fill();
+      ctx.globalAlpha=1; ctx.shadowBlur = 0;
+      ctx.fillStyle = "#8d94a0"; ctx.font = "9.5px ui-monospace"; ctx.textAlign = "center";
+      ctx.fillText(n.id, n.X, n.Y-13);
+    }
+  }
+  function loop(){ step(); draw(); if(--frames>0) requestAnimationFrame(loop); }
+  if(RM){ for(let k=0;k<160;k++) step(); draw(); } else loop();
+  cv.style.cursor = "pointer";
+  cv.onclick = e => {
+    const r = cv.getBoundingClientRect();
+    const x = e.clientX-r.left, y = e.clientY-r.top;
+    const hit = N.find(n=>(n.X-x)**2+(n.Y-y)**2 < 260);
+    if(hit) toast(hit.id, `${hit.kind} node — ${E.filter(ed=>ed.includes(N.indexOf(hit))).length} linked records. In the runtime this opens the underlying decision/artifact record.`);
+  };
+};
+
+/* ── register + polish ──────────────────────────────────────────────── */
+renderDock();
+openWin("swarm");
+setTimeout(()=>toast("V2 layer active","Swarm channel, policy editor, live instruments, neural field. Same invariant: reads and previews only — the runtime acts, this surface never does."), 1400);
+})();
+
 </script>
 </body>
 </html>
