@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AgentGRIT Desktop — governed command environment</title>
+<style>
+:root{
+  --bg:#0b0d10; --desk:#0d1014; --panel:#14171c; --panel2:#191d23; --panel3:#1e232b;
+  --border:#262b33; --border-hi:#333a45;
+  --text:#eae7e0; --muted:#8d94a0; --dim:#5c6470;
+  --lime:#b8e34d; --cyan:#7fd0cf; --danger:#e05252; --amber:#e0b452; --violet:#b48ce0;
+  --ok:#5fca8f;
+  --r:12px; --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px;
+  --font:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden}
+body{font:13.5px/1.5 var(--font);background:var(--bg);color:var(--text)}
+/* faint ambient grain — no particles, no motion */
+#desk{position:fixed;inset:28px 0 66px 0;background:
+  radial-gradient(1200px 700px at 70% 10%, #10141a 0%, var(--desk) 55%, #0a0c0f 100%);}
+#desk::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");}
+/* ── menubar ─────────────────────────────────────────────── */
+#menubar{position:fixed;top:0;left:0;right:0;height:28px;display:flex;align-items:center;gap:var(--s4);
+  padding:0 var(--s4);background:#0a0c0fe8;border-bottom:1px solid var(--border);z-index:9000;
+  font-size:12px;color:var(--muted);backdrop-filter:blur(8px)}
+#menubar .wordmark{color:var(--text);font-weight:650;letter-spacing:.02em}
+#menubar .wordmark b{color:var(--lime)}
+.mbadge{font-size:10px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);letter-spacing:.04em}
+.mbadge.live{color:var(--lime);border-color:#3a4a22}
+.mbadge.demo{color:var(--cyan);border-color:#2a4342}
+.mbadge.ro{color:var(--amber);border-color:#4a3d22}
+#mb-right{margin-left:auto;display:flex;gap:var(--s4);align-items:center}
+#clock{font-family:var(--mono);font-size:11.5px}
+/* ── dock ────────────────────────────────────────────────── */
+#dock{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;
+  padding:8px 10px;background:#12151ae0;border:1px solid var(--border);border-radius:16px;z-index:9000;
+  backdrop-filter:blur(10px)}
+.dock-app{position:relative;width:52px;padding:7px 2px 5px;border-radius:10px;text-align:center;cursor:pointer;
+  color:var(--muted);transition:background .15s,color .15s;user-select:none}
+.dock-app:hover{background:#1d222a;color:var(--text)}
+.dock-app.open{color:var(--text)}
+.dock-app.open::after{content:"";position:absolute;bottom:1px;left:50%;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;background:var(--lime)}
+.dock-app .glyph{font-size:17px;line-height:1.15;display:block}
+.dock-app .dl{font-size:8.5px;letter-spacing:.02em;display:block;margin-top:1px}
+.dock-badge{position:absolute;top:2px;right:5px;min-width:15px;height:15px;border-radius:8px;
+  background:var(--danger);color:#fff;font-size:9.5px;font-weight:700;line-height:15px;padding:0 3px}
+/* ── windows ─────────────────────────────────────────────── */
+.win{position:absolute;display:flex;flex-direction:column;background:var(--panel);
+  border:1px solid var(--border);border-radius:var(--r);min-width:340px;min-height:200px;
+  box-shadow:0 18px 50px -18px rgba(0,0,0,.75), 0 2px 8px rgba(0,0,0,.4);
+  opacity:.985;transition:box-shadow .18s,opacity .18s}
+.win.focused{border-color:var(--border-hi);opacity:1;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.85), 0 4px 14px rgba(0,0,0,.5)}
+.win-head{display:flex;align-items:center;gap:var(--s3);padding:9px var(--s4);cursor:grab;
+  border-bottom:1px solid var(--border);border-radius:var(--r) var(--r) 0 0;background:var(--panel2)}
+.win-head:active{cursor:grabbing}
+.dots{display:flex;gap:6px}
+.dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.35);cursor:pointer}
+.dot.close{background:#5a3535}.dot.min{background:#5a5135}.dot.zoom{background:#37543b}
+.win.focused .dot.close{background:#c75454}.win.focused .dot.min{background:#c7a854}.win.focused .dot.zoom{background:#57a35f}
+.win-title{font-size:12px;font-weight:650;letter-spacing:.03em;color:var(--text)}
+.win-sub{font-size:10.5px;color:var(--dim);margin-left:auto;font-family:var(--mono)}
+.win-body{flex:1;overflow:auto;padding:var(--s4)}
+.rsz{position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize}
+/* ── shared primitives ───────────────────────────────────── */
+h3.sec{margin:var(--s4) 0 var(--s2);font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:650}
+h3.sec:first-child{margin-top:0}
+.card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:var(--s3) var(--s4);margin-bottom:var(--s2)}
+.card.hi{border-color:var(--border-hi)}
+.pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:5px}
+.pill.active{background:#1d2c1f;color:var(--ok)}.pill.blocked{background:#33201d;color:var(--danger)}
+.pill.verifying{background:#1c2a33;color:var(--cyan)}.pill.awaiting{background:#332c18;color:var(--amber)}
+.pill.queued{background:#232833;color:var(--muted)}.pill.done{background:#1d2c1f;color:var(--ok)}
+.pill.planning{background:#2a2333;color:var(--violet)}.pill.failed{background:#33201d;color:var(--danger)}
+.pill.low{background:#1d2c1f;color:var(--ok)}.pill.medium{background:#332c18;color:var(--amber)}
+.pill.high{background:#33241d;color:#e08952}.pill.critical{background:#33201d;color:var(--danger)}
+.meta{color:var(--muted);font-size:11.5px}
+.mono{font-family:var(--mono);font-size:11px}
+.kv{display:flex;gap:var(--s2);margin:2px 0}.kv b{min-width:130px;color:var(--muted);font-weight:500;font-size:11.5px}
+.btn{display:inline-block;background:var(--panel3);border:1px solid var(--border);color:var(--text);
+  border-radius:7px;padding:5px 12px;font:600 11.5px var(--font);cursor:pointer;margin:2px 4px 2px 0;transition:border-color .12s}
+.btn:hover{border-color:var(--border-hi)}
+.btn.primary{background:#28321a;border-color:#3f5320;color:var(--lime)}
+.btn.danger{background:#33201d;border-color:#553030;color:var(--danger)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.label-tok{font-family:var(--mono);font-size:10px;font-weight:700;padding:1px 5px;border-radius:4px}
+.label-tok.certain{background:#1d2c1f;color:var(--ok)}.label-tok.likely{background:#1c2a33;color:var(--cyan)}
+.label-tok.assumption{background:#332c18;color:var(--amber)}.label-tok.unknown{background:#2a2a2a;color:var(--muted)}
+.bar{height:7px;background:#0e1116;border-radius:4px;overflow:hidden;margin:4px 0}
+.bar>i{display:block;height:100%;background:var(--lime)}
+.bar.warn>i{background:var(--amber)}
+.evrow{display:flex;gap:var(--s2);align-items:baseline;padding:3px 0;border-bottom:1px solid #1c2128}
+.evrow:last-child{border-bottom:0}
+.tick{color:var(--ok);font-weight:700}.cross{color:var(--danger);font-weight:700}.pend{color:var(--amber);font-weight:700}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+table.t th{text-align:left;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:4px 8px;border-bottom:1px solid var(--border);font-weight:650}
+table.t td{padding:6px 8px;border-bottom:1px solid #1c2128;vertical-align:top}
+table.t tr:hover td{background:#181d24}
+.note{border:1px dashed var(--border);border-radius:8px;padding:var(--s2) var(--s3);color:var(--muted);font-size:11.5px;margin:var(--s2) 0}
+.lens{display:grid;grid-template-columns:86px 1fr;gap:2px 10px;font-size:12px;margin-top:var(--s2)}
+.lens b{color:var(--muted);font-weight:650;font-size:11px}
+.lens .fable{color:#e0d5b0}.lens .grok{color:#a8d4e0}.lens .terra{color:#c4b3e0}
+/* agent room */
+.ar{display:flex;gap:var(--s3);height:100%}
+.ar-rail{width:172px;flex-shrink:0;overflow:auto;border-right:1px solid var(--border);padding-right:var(--s2)}
+.ag{padding:7px 8px;border-radius:8px;cursor:pointer;margin-bottom:2px}
+.ag:hover{background:#1a1f26}
+.ag .nm{font-size:12px;font-weight:650;display:flex;align-items:center;gap:6px}
+.ag .st{font-size:10px;color:var(--muted)}
+.sdot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.sdot.working{background:var(--ok)}.sdot.blocked{background:var(--danger)}.sdot.idle{background:var(--dim)}
+.sdot.awaiting{background:var(--amber)}.sdot.verifying{background:var(--cyan)}.sdot.planning{background:var(--violet)}
+.trust{font-size:9px;letter-spacing:.05em;color:var(--dim)}
+.ar-feed{flex:1;overflow:auto}
+.upd{border-left:2px solid var(--border);padding:var(--s2) var(--s3);margin:0 0 var(--s2) var(--s1)}
+.upd .who{font-size:11px;font-weight:650}
+.upd .typ{font-size:9px;font-weight:700;letter-spacing:.06em;padding:1px 6px;border-radius:4px;margin-left:6px}
+.upd.evidence{border-color:var(--ok)}.upd.evidence .typ{background:#1d2c1f;color:var(--ok)}
+.upd.proposal{border-color:var(--cyan)}.upd.proposal .typ{background:#1c2a33;color:var(--cyan)}
+.upd.escalation{border-color:var(--amber)}.upd.escalation .typ{background:#332c18;color:var(--amber)}
+.upd.synthesis{border-color:var(--violet)}.upd.synthesis .typ{background:#2a2333;color:var(--violet)}
+.upd.handoff{border-color:var(--dim)}.upd.handoff .typ{background:#232833;color:var(--muted)}
+/* palette */
+#pal{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;padding-top:14vh;
+  background:rgba(6,8,10,.55);z-index:9500;backdrop-filter:blur(3px)}
+#pal.on{display:flex}
+#palbox{width:620px;background:var(--panel);border:1px solid var(--border-hi);border-radius:14px;overflow:hidden;
+  box-shadow:0 40px 120px -20px rgba(0,0,0,.9)}
+#palin{width:100%;background:transparent;border:0;outline:0;color:var(--text);font:15px var(--font);padding:15px 18px;border-bottom:1px solid var(--border)}
+#pallist{max-height:320px;overflow:auto}
+.palit{display:flex;gap:var(--s3);align-items:baseline;padding:9px 18px;cursor:pointer;font-size:13px}
+.palit.sel,.palit:hover{background:#1c2230}
+.palit .hint{margin-left:auto;color:var(--dim);font-size:11px;font-family:var(--mono)}
+.palit .risk{font-size:9px;font-weight:700;color:var(--amber)}
+/* toasts */
+#toasts{position:fixed;right:16px;top:40px;z-index:9600;width:330px}
+.toast{background:var(--panel2);border:1px solid var(--border-hi);border-left:3px solid var(--lime);border-radius:9px;
+  padding:10px 13px;margin-bottom:8px;font-size:12px;animation:tin .22s ease}
+.toast.warn{border-left-color:var(--amber)}.toast.err{border-left-color:var(--danger)}
+.toast b{display:block;font-size:12px}
+.toast .meta{font-size:11px}
+@keyframes tin{from{transform:translateY(-6px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+/* historian graph */
+#hgraph{background:#0e1116;border:1px solid var(--border);border-radius:10px;width:100%}
+.tl-ev{display:flex;gap:var(--s3);padding:6px 0;border-bottom:1px solid #1c2128;font-size:12px}
+.tl-ev .t{font-family:var(--mono);font-size:10px;color:var(--dim);min-width:52px}
+.tl-k{font-size:9px;font-weight:700;letter-spacing:.05em;padding:1px 6px;border-radius:4px;height:fit-content}
+.tl-k.obs{background:#232833;color:var(--muted)}.tl-k.dec{background:#2a2333;color:var(--violet)}
+.tl-k.del{background:#1c2a33;color:var(--cyan)}.tl-k.ev{background:#1d2c1f;color:var(--ok)}
+.tl-k.app{background:#332c18;color:var(--amber)}.tl-k.res{background:#1d2c1f;color:var(--ok)}
+/* artifacts */
+.afx{display:flex;gap:var(--s3);height:100%}
+.afx-tree{width:210px;flex-shrink:0;border-right:1px solid var(--border);overflow:auto;padding-right:var(--s2)}
+.afile{padding:4px 8px;border-radius:6px;cursor:pointer;font-size:12px;display:flex;gap:6px}
+.afile:hover,.afile.sel{background:#1a1f26}
+.afile .chg{font-family:var(--mono);font-size:10px;margin-left:auto}
+.chg.a{color:var(--ok)}.chg.m{color:var(--amber)}
+.afx-view{flex:1;overflow:auto}
+pre.code{background:#0e1116;border:1px solid var(--border);border-radius:8px;padding:var(--s3);
+  font:11px/1.55 var(--mono);color:#c3cbd6;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.ladder{display:flex;gap:0;align-items:center;margin:var(--s3) 0}
+.rung{flex:1;text-align:center;padding:9px 4px;border:1px solid var(--border);font-size:11px;font-weight:650;background:var(--panel2)}
+.rung:first-child{border-radius:8px 0 0 8px}.rung:last-child{border-radius:0 8px 8px 0}
+.rung.at{background:#28321a;border-color:#3f5320;color:var(--lime)}
+.rung .n{display:block;font-size:9.5px;color:var(--dim);font-weight:500}
+</style>
+</head>
+<body>
+<div id="menubar">
+  <span class="wordmark"><b>●</b> AgentGRIT</span>
+  <span class="meta" id="mb-ws">AgentGRIT Core</span>
+  <span class="mbadge demo" id="mode-badge">DEMO STATE</span>
+  <span class="mbadge ro" title="This surface renders state and previews decisions. It never executes actions; approvals happen on the governed path.">READ-ONLY · NEVER ACTS</span>
+  <div id="mb-right">
+    <span class="meta" id="mb-health">local model ● · api …</span>
+    <span class="meta mono">⌘K commands</span>
+    <span id="clock"></span>
+  </div>
+</div>
+<div id="desk"></div>
+<div id="dock"></div>
+<div id="pal"><div id="palbox"><input id="palin" placeholder="Type a command — 'brief me', 'what is blocked', 'pause backend', 'switch routing to local-first'…"/><div id="pallist"></div></div></div>
+<div id="toasts"></div>
+
+<script>
+"use strict";
+/* ════════════════════════════════════════════════════════════════════
+   AgentGRIT Desktop — governed command environment.
+   Dual mode: LIVE (polls the real read-only /console/data API when this
+   page is served by the AgentGRIT server) or DEMO (structured local
+   state). Every surface maps to a runtime primitive. This page issues
+   GET requests only — it can never act.
+   ════════════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ── demo state: the mission is this very build, and it is true ────── */
+const DEMO = {
+  workspace:"AgentGRIT Core",
+  mission:{
+    id:"MSN-0301", title:"Prepare v0.3 desktop command center for internal release",
+    status:"active", pct:68, risk:"medium", priority:"P1",
+    budget:{daily:18.00, spent:6.42},
+    brief:"Evolve the read-only ops console into a windowed desktop command environment. All surfaces must map to real runtime primitives (decisions, escalations, routing, trust, evidence). The shell must preserve the never-acts invariant: approvals render here, execute only on the governed path.",
+    lens:{
+      fable:"Objection — 'shell complete' is unverifiable until the suite covers GET-only + self-contained invariants; no claim before that artifact exists.",
+      grok:"Execution — serve one self-contained file from the existing API; no new deps, no POST surface; diff + tests are the done-artifact.",
+      terra:"Reinterpretation — the ask is not 'macOS clone', it is legibility of governed work; density and evidence beat cinematic props."
+    },
+    needsYou:[
+      {id:"APR-114", kind:"approval", txt:"Non-production notification credential (staging) awaits your decision", risk:"medium"},
+      {id:"ENG-104", kind:"review", txt:"Migration rollback plan ready for review — Verification Worker attached evidence", risk:"low"}
+    ]
+  },
+  tasks:[
+    {id:"ENG-101", lane:"Engineering", title:"Window manager + dock + focus model", state:"done", owner:"Backend Manager", ev:"pass"},
+    {id:"ENG-102", lane:"Engineering", title:"Approval Center surface (signature)", state:"active", owner:"Backend Manager", dep:"ENG-101", ev:"partial"},
+    {id:"ENG-104", lane:"Engineering", title:"Migration rollback plan", state:"verifying", owner:"Verification Worker", ev:"pass"},
+    {id:"ENG-107", lane:"Engineering", title:"Production notification provider", state:"blocked", owner:"Backend Manager", dep:"APR-114", ev:"none"},
+    {id:"RES-201", lane:"Research", title:"Survey command-palette ergonomics (governed sources)", state:"done", owner:"Local Scout", ev:"pass"},
+    {id:"RES-202", lane:"Research", title:"Validate routing-posture copy against router truth", state:"active", owner:"Research Manager", ev:"partial"},
+    {id:"PRD-301", lane:"Product", title:"Internal release checklist", state:"planning", owner:"Product Manager", ev:"none"},
+    {id:"VER-401", lane:"Verification", title:"Evidence bundle: v0.3 completion claim", state:"awaiting", owner:"Verification Worker", dep:"ENG-102", ev:"partial"}
+  ],
+  agents:[
+    {name:"GRIT Lead", tier:"manager", trust:"TRUSTED", status:"working", task:"Synthesizing workstream state for the 18:00 brief", model:"reasoning-tier (cloud)", tools:"read · delegate · brief", ctx:"31%"},
+    {name:"Backend Manager", tier:"manager", trust:"TRUSTED", status:"awaiting", task:"ENG-107 blocked on APR-114 credential approval", model:"grit-junior (local)", tools:"code · test · patch", ctx:"54%"},
+    {name:"Research Manager", tier:"manager", trust:"TRUSTED", status:"working", task:"RES-202 source validation", model:"research-tier (cloud)", tools:"search · cite · grade", ctx:"22%"},
+    {name:"Product Manager", tier:"manager", trust:"UNTRUSTED", status:"planning", task:"PRD-301 checklist draft", model:"grit-junior (local)", tools:"draft · plan", ctx:"12%"},
+    {name:"Verification Worker", tier:"worker", trust:"TRUSTED", status:"verifying", task:"ENG-104 rollback evidence run", model:"grit-junior (local)", tools:"test · diff · audit", ctx:"41%"},
+    {name:"Local Scout", tier:"worker", trust:"AUTONOMOUS", status:"idle", task:"—", model:"grit-junior (local)", tools:"read-only research", ctx:"6%"},
+    {name:"Cloud Architect", tier:"worker", trust:"TRUSTED", status:"idle", task:"—", model:"architect-tier (cloud)", tools:"design (no mutation)", ctx:"0%"}
+  ],
+  feed:[
+    {who:"Local Scout", typ:"evidence", t:"17:41", body:"Found 3 relevant palette-ergonomics sources. Two graded LIKELY only — insufficient for any irreversible choice.", label:"likely"},
+    {who:"Verification Worker", typ:"evidence", t:"17:44", body:"84 tests passed, 2 integration tests pending: missing staging credential. Artifact: test-report-v0.3.json.", label:"certain"},
+    {who:"Backend Manager", typ:"escalation", t:"17:46", body:"Requesting approval APR-114: non-production notification credential, staging scope only, reversible, rollback attached.", label:"assumption"},
+    {who:"GRIT Lead", typ:"synthesis", t:"17:52", body:"Recommend option B (adapter behind existing notify contract): preserves rollback, stays inside current risk policy, zero new dependencies. Fable lens: verify contract tests first. Grok lens: B is the smaller diff. Terra lens: option A solves a problem we do not have.", label:"likely"},
+    {who:"Research Manager", typ:"handoff", t:"17:55", body:"RES-202 partial: router copy verified against decisions log for 3 of 4 postures. UNKNOWN: 'Fastest' posture cost claim — needs one more sample.", label:"unknown"}
+  ],
+  approvals:[
+    {id:"APR-114", title:"Create non-production notification provider credential", risk:"medium", state:"awaiting",
+     agent:"Backend Manager", mgr:"GRIT Lead",
+     why:"Bylaw: credential creation is escalate-class regardless of scope.",
+     blast:"Staging notification channel only. No production system can be reached with this credential.",
+     revers:"Fully reversible — credential is scoped, expiring (72h), and revocable in one command (attached).",
+     evidence:["test-report-v0.3.json — notify contract tests green","notification-adapter-plan.md — reviewed by GRIT Lead"],
+     alts:["Defer until production window (blocks VER-401 by ~2 days)","Mock provider only (leaves integration risk undischarged)"],
+     rec:"Approve with 72h expiry. Cheapest path that discharges integration risk before the release claim.",
+     perms:"create: staging-notify-credential · use: staging only · expiry: 72h",
+     expires:"in 9h 12m", confirm:false},
+    {id:"APR-117", title:"Deploy current build to production", risk:"high", state:"blocked",
+     agent:"Backend Manager", mgr:"GRIT Lead",
+     why:"POLICY BLOCK — evidence requirements incomplete: VER-401 bundle not passed; release review missing.",
+     blast:"Production runtime for all workspace agents.",
+     revers:"Rollback plan exists (ENG-104) but is itself still in verification.",
+     evidence:["INCOMPLETE — completion claim rejected by Evidence Inspector"],
+     alts:["Complete VER-401, then re-request","Stage-only deploy under existing credential"],
+     rec:"System recommendation: do not approve. This request cannot be approved from any surface until evidence gates pass.",
+     perms:"deploy: production (DENIED by bylaw until gates pass)",
+     expires:"—", confirm:true}
+  ],
+  evidence:{
+    claim:"ENG-104 'Migration rollback plan' is complete",
+    verdict:"PASS — completion claim accepted",
+    checks:[
+      {n:"Tests", s:"pass", d:"84 passed · 0 failed · 2 pending (credential-gated, tracked in APR-114)"},
+      {n:"Lint / type-check", s:"pass", d:"ruff clean · mypy clean on changed files"},
+      {n:"Artifacts", s:"pass", d:"desktop-shell-diff.patch · rollback-procedure.md"},
+      {n:"Provenance", s:"pass", d:"research-provenance-bundle.json — 4 sources, all CERTAIN or LIKELY, none load-bearing below LIKELY"},
+      {n:"Reversibility", s:"pass", d:"rollback rehearsed against staging snapshot 17:44"}
+    ],
+    rejected:{
+      claim:"v0.3 desktop shell is complete (VER-401)",
+      why:"Evidence bundle partial: Approval-Center interaction tests missing; release review not run. Completion cannot be claimed — claim returned to Backend Manager with the exact missing artifacts named."
+    }
+  },
+  routing:{
+    posture:"Balanced",
+    budgetPct:36,
+    rows:[
+      {task:"Synthesize architecture options", model:"architect-tier (cloud)", why:"High ambiguity, cross-system tradeoffs — above local floor", alts:"Local Scout insufficient (complexity) · premium tier unnecessary under policy", est:0.38, act:0.31, cls:"cloud"},
+      {task:"Format + docstring pass", model:"grit-junior (local)", why:"Boilerplate class — cheapest capable", alts:"—", est:0.00, act:0.00, cls:"local"},
+      {task:"Source validation (RES-202)", model:"research-tier (cloud)", why:"Needs citation-grade web evidence", alts:"local model has no live sources", est:0.12, act:0.09, cls:"cloud"},
+      {task:"Rollback rehearsal audit", model:"grit-junior (local)", why:"Mechanical diff + checklist audit", alts:"—", est:0.00, act:0.00, cls:"local"}
+    ],
+    postures:{
+      "Conservative":{note:"Escalates evidence floors one class; cloud only on explicit need.", mult:0.8},
+      "Balanced":{note:"Cheapest capable model; policy floors unchanged.", mult:1.0},
+      "Fastest":{note:"Prefers strongest available tier; budget burn ~2.4x. Floors still apply.", mult:2.4},
+      "Local-first":{note:"Cloud requires per-task justification; latency may rise on complex work.", mult:0.55}
+    }
+  },
+  historian:{
+    pattern:"Production-impacting work has been delayed twice by missing rollback evidence. Both delays trace to claims made before verification ran. Standing mitigation: rollback evidence is now a bylaw-level gate for deploy-class requests.",
+    timeline:[
+      {t:"16:58", k:"obs", txt:"Local Scout: staging credential absent — 2 integration tests cannot run"},
+      {t:"17:02", k:"dec", txt:"GRIT Lead: pursue option B (adapter behind notify contract), defer option A"},
+      {t:"17:05", k:"del", txt:"Backend Manager ← ENG-107; Verification Worker ← ENG-104 evidence run"},
+      {t:"17:44", k:"ev", txt:"84/84 available tests pass; rollback rehearsed against snapshot"},
+      {t:"17:46", k:"app", txt:"APR-114 raised (medium): staging credential, 72h expiry, reversible"},
+      {t:"17:58", k:"res", txt:"ENG-104 completion claim ACCEPTED by Evidence Inspector"}
+    ],
+    nodes:[
+      {id:"MSN-0301", kind:"mission", x:.08, y:.5},
+      {id:"DEC option-B", kind:"decision", x:.3, y:.28},
+      {id:"ENG-104", kind:"task", x:.3, y:.72},
+      {id:"APR-114", kind:"approval", x:.55, y:.28},
+      {id:"test-report", kind:"artifact", x:.55, y:.72},
+      {id:"rollback-gate", kind:"constraint", x:.8, y:.5}
+    ],
+    edges:[[0,1],[0,2],[1,3],[2,4],[3,5],[4,5]]
+  },
+  artifacts:[
+    {n:"test-report-v0.3.json", chg:"a", by:"Verification Worker", task:"ENG-104", ver:"verified 17:44",
+     body:'{\n  "suite": "agentgrit-desktop",\n  "passed": 84,\n  "failed": 0,\n  "pending": 2,\n  "pending_reason": "staging credential (APR-114)",\n  "duration_s": 41.7,\n  "claim_eligible": true\n}'},
+    {n:"approval-policy-spec.md", chg:"m", by:"GRIT Lead", task:"ENG-102", ver:"verified 17:12",
+     body:"# Approval anatomy (v0.3)\\n\\nEvery request renders: action in plain language, requesting agent +\\nsupervising manager, risk class, the policy that fired, blast radius,\\nreversibility + rollback, evidence bundle, alternatives considered,\\nrecommendation with reasoning, exact permissions, expiry.\\n\\nHigh/critical adds typed confirmation ON THE GOVERNED PATH — this\\nsurface previews; it never executes."},
+    {n:"desktop-shell-diff.patch", chg:"a", by:"Backend Manager", task:"ENG-101", ver:"verified 16:40",
+     body:"+ window manager: drag / resize / focus / minimize / snap\\n+ dock with escalation badges\\n+ command palette (structured preview before consequential commands)\\n+ menubar: mode, health, read-only invariant badge\\n… 14 files changed, 1,882 insertions"},
+    {n:"research-provenance-bundle.json", chg:"a", by:"Research Manager", task:"RES-201", ver:"verified 15:58",
+     body:'{\n  "sources": 4,\n  "grades": {"CERTAIN": 1, "LIKELY": 3},\n  "load_bearing_below_likely": 0,\n  "dropped_uncited": 2\n}'},
+    {n:"notification-adapter-plan.md", chg:"a", by:"Backend Manager", task:"ENG-107", ver:"awaiting APR-114",
+     body:"Option B: adapter behind the existing notify contract.\\nZero new dependencies. Credential scoped to staging, 72h expiry.\\nRollback: revoke credential + remove adapter registration (1 command)."}
+  ],
+  policy:{
+    trustNote:"Trust is earned from verified successful runs and reduced by failures or violations. An agent can never raise its own tier.",
+    ladder:[["UNTRUSTED","every action reviewed"],["TRUSTED","routine work autonomous"],["AUTONOMOUS","bounded self-direction"]],
+    trustEvents:[
+      {who:"Local Scout", dir:"↑", why:"12 consecutive verified research runs", to:"AUTONOMOUS"},
+      {who:"Product Manager", dir:"·", why:"new agent — insufficient history", to:"UNTRUSTED"},
+      {who:"Backend Manager", dir:"↓→↑", why:"one failed verification (unverified claim) cost a tier; re-earned after 6 clean runs", to:"TRUSTED"}
+    ],
+    bylaws:[
+      {cat:"absolute block", ex:"destructive database command", s:"blocked"},
+      {cat:"absolute block", ex:"force push to main", s:"blocked"},
+      {cat:"escalate", ex:"production deployment", s:"requires human"},
+      {cat:"escalate", ex:"credential creation (any scope)", s:"requires approval"},
+      {cat:"verify-before-done", ex:"any completion claim", s:"evidence bundle required"},
+      {cat:"inform", ex:"read-only research", s:"allowed + logged"}
+    ],
+    log:[
+      {t:"17:46", rule:"credential_creation", act:"ESCALATE", cmd:"create staging-notify-credential"},
+      {t:"17:31", rule:"blocked_patterns", act:"BLOCK", cmd:"rm -rf ./build (agent retried with scoped clean — allowed)"},
+      {t:"16:22", rule:"verify_before_done", act:"REJECT CLAIM", cmd:"VER-401 completion without full bundle"}
+    ]
+  }
+};
+
+/* ── live mode adapter (GET-only, same-origin) ─────────────────────── */
+const LIVE = {on:false, data:{}};
+async function tryLive(){
+  try{
+    const ctl = new AbortController(); setTimeout(()=>ctl.abort(), 1500);
+    const r = await fetch("/console/data?screen=overview",{signal:ctl.signal, cache:"no-store"});
+    if(!r.ok) throw 0;
+    LIVE.on = true; LIVE.data.overview = await r.json();
+    $("#mode-badge").textContent = "LIVE RUNTIME"; $("#mode-badge").className = "mbadge live";
+    pollLive(); setInterval(pollLive, 10000);
+    toast("Live runtime connected","Reading the real governed state via GET /console/data. This surface still never acts.","ok");
+  }catch(e){
+    $("#mode-badge").textContent = "DEMO STATE"; $("#mode-badge").className = "mbadge demo";
+  }
+  renderAll(); updateHealth();
+}
+async function pollLive(){
+  if(!LIVE.on) return;
+  for(const s of ["overview","tasks","governance","models","audit"]){
+    try{ const r = await fetch(`/console/data?screen=${s}&limit=40`,{cache:"no-store"}); if(r.ok) LIVE.data[s] = await r.json(); }catch(e){}
+  }
+  renderAll();
+}
+function updateHealth(){
+  $("#mb-health").textContent = `local model ● · api ${LIVE.on?"●":"○"} · ${LIVE.on?"governed logs streaming":"demo dataset"}`;
+}
+
+/* ── window manager ─────────────────────────────────────────────────── */
+let Z = 10;
+const WM = {};
+function mkWin(id, title, x, y, w, h){
+  const el = document.createElement("div");
+  el.className = "win"; el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;z-index:${++Z}`;
+  el.innerHTML = `<div class="win-head">
+      <span class="dots"><span class="dot close" title="close"></span><span class="dot min" title="minimize"></span><span class="dot zoom" title="focus size"></span></span>
+      <span class="win-title">${esc(title)}</span><span class="win-sub">${esc(id)}</span></div>
+    <div class="win-body"></div><div class="rsz"></div>`;
+  $("#desk").appendChild(el);
+  WM[id] = {el, title, min:false};
+  const head = el.querySelector(".win-head");
+  const focus = () => { document.querySelectorAll(".win").forEach(w=>w.classList.remove("focused")); el.classList.add("focused"); el.style.zIndex = ++Z; };
+  el.addEventListener("mousedown", focus);
+  /* drag */
+  head.addEventListener("mousedown", e=>{
+    if(e.target.classList.contains("dot")) return;
+    const sx=e.clientX, sy=e.clientY, ox=el.offsetLeft, oy=el.offsetTop;
+    const mv = ev => { el.style.left = Math.max(0, ox+ev.clientX-sx)+"px"; el.style.top = Math.max(0, oy+ev.clientY-sy)+"px"; };
+    const up = () => { el.style.left = (Math.round(el.offsetLeft/8)*8)+"px"; el.style.top = (Math.round(el.offsetTop/8)*8)+"px";
+      document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); saveLayout(); };
+    document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+  });
+  /* resize */
+  el.querySelector(".rsz").addEventListener("mousedown", e=>{
+    e.stopPropagation();
+    const sx=e.clientX, sy=e.clientY, ow=el.offsetWidth, oh=el.offsetHeight;
+    const mv = ev => { el.style.width = Math.max(340, ow+ev.clientX-sx)+"px"; el.style.height = Math.max(200, oh+ev.clientY-sy)+"px"; };
+    const up = () => { document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); saveLayout(); };
+    document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+  });
+  el.querySelector(".dot.close").onclick = () => { el.style.display="none"; WM[id].min=true; renderDock(); };
+  el.querySelector(".dot.min").onclick = () => { el.style.display="none"; WM[id].min=true; renderDock(); };
+  el.querySelector(".dot.zoom").onclick = () => { el.style.width="880px"; el.style.height="560px"; focus(); };
+  focus();
+  return el;
+}
+function openWin(id){
+  const w = WM[id];
+  if(w){ w.min=false; w.el.style.display="flex"; w.el.style.zIndex = ++Z;
+    document.querySelectorAll(".win").forEach(x=>x.classList.remove("focused")); w.el.classList.add("focused");
+  } else { const d = APPS.find(a=>a.id===id); mkWin(id, d.title, d.x, d.y, d.w, d.h); }
+  render(id); renderDock(); saveLayout();
+}
+function saveLayout(){
+  try{ const l={}; for(const id in WM){ const e=WM[id].el; l[id]={x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight,min:WM[id].min}; }
+    localStorage.setItem("grit-desk-layout", JSON.stringify(l)); }catch(e){}
+}
+
+/* ── dock ───────────────────────────────────────────────────────────── */
+const APPS = [
+  {id:"mission",  glyph:"◎", label:"Mission",   title:"Mission Control", x:56,  y:44,  w:760, h:520},
+  {id:"agents",   glyph:"⧉", label:"Agents",    title:"Agent Room", x:846, y:44,  w:600, h:400},
+  {id:"approvals",glyph:"✓", label:"Approvals", title:"Approval Center", x:846, y:462, w:600, h:330},
+  {id:"evidence", glyph:"▣", label:"Evidence",  title:"Evidence Inspector", x:120, y:120, w:640, h:460},
+  {id:"routing",  glyph:"⇄", label:"Routing",   title:"Routing + Cost Ledger", x:180, y:170, w:700, h:430},
+  {id:"historian",glyph:"◷", label:"Historian", title:"Historian — memory + timeline", x:240, y:90,  w:720, h:500},
+  {id:"artifacts",glyph:"❒", label:"Artifacts", title:"Artifact Explorer", x:300, y:140, w:720, h:460},
+  {id:"policy",   glyph:"§", label:"Policy",    title:"Policy + Trust Center", x:360, y:110, w:640, h:500},
+];
+function renderDock(){
+  $("#dock").innerHTML = APPS.map(a=>{
+    const open = WM[a.id] && !WM[a.id].min;
+    const badge = a.id==="approvals" ? (getApprovals().filter(x=>x.state==="awaiting").length||"") : "";
+    return `<div class="dock-app ${open?"open":""}" data-app="${a.id}" title="${esc(a.title)}">
+      ${badge?`<span class="dock-badge">${badge}</span>`:""}
+      <span class="glyph">${a.glyph}</span><span class="dl">${a.label}</span></div>`;
+  }).join("");
+}
+document.addEventListener("click", e=>{
+  const d = e.target.closest(".dock-app"); if(d) openWin(d.dataset.app);
+});
+
+/* ── toasts ─────────────────────────────────────────────────────────── */
+function toast(title, body, kind){
+  const t = document.createElement("div");
+  t.className = "toast" + (kind==="warn"?" warn":kind==="err"?" err":"");
+  t.innerHTML = `<b>${esc(title)}</b><span class="meta">${esc(body)}</span>`;
+  $("#toasts").appendChild(t);
+  setTimeout(()=>{ t.style.opacity="0"; t.style.transition="opacity .4s"; setTimeout(()=>t.remove(), 450); }, 5200);
+}
+function simulated(action){
+  toast("SIMULATED — no action executed", action + " · In the runtime this flows through the governed approval path; this surface never acts.", "warn");
+}
+
+/* ── data accessors (demo vs live) ──────────────────────────────────── */
+function getApprovals(){
+  if(LIVE.on && LIVE.data.governance){
+    return (LIVE.data.governance.escalations||[]).map(e=>({
+      id:e.id||"esc", title:(e.category||"escalation")+" — "+(e.requester||""), risk:(e.risk_level>=30?"high":e.risk_level>=20?"medium":"low"),
+      state:(String(e.status).toLowerCase()==="pending")?"awaiting":"logged",
+      agent:e.requester||"agent", mgr:"deterministic Manager",
+      why:"Escalation trigger fired (see governance log).", blast:"See escalation record.",
+      revers:"—", evidence:["decision + escalation records in logs/"],
+      alts:["—"], rec:"Decide on the governed path (CLI / wired channel).",
+      perms:"—", expires:e.expires_at||"—", confirm:e.risk_level>=30
+    }));
+  }
+  return DEMO.approvals;
+}
+
+/* ── surfaces ───────────────────────────────────────────────────────── */
+const R = {};
+R.mission = body => {
+  const m = DEMO.mission;
+  let kpis = "";
+  if(LIVE.on && LIVE.data.overview){
+    const k = LIVE.data.overview.kpis||{};
+    kpis = `<div class="card hi"><h3 class="sec">Live runtime — today</h3>
+      <div class="kv"><b>decisions</b><span>${k.decisions_today||0}</span></div>
+      <div class="kv"><b>pending escalations</b><span>${k.pending_escalations||0}</span></div>
+      <div class="kv"><b>router calls / est cost</b><span>${k.router_total||0} · $${Number(k.router_cost_sum||0).toFixed(4)}</span></div>
+      ${k.last_blocked?`<div class="kv"><b>last blocked</b><span class="mono">${esc(k.last_blocked.action||"")}</span></div>`:""}
+    </div>`;
+  }
+  body.innerHTML = `
+    ${kpis}
+    <div class="card hi">
+      <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+        <span style="font-size:15px;font-weight:700">${esc(m.title)}</span>
+        <span class="pill active">ACTIVE ${m.pct}%</span><span class="pill medium">RISK ${m.risk.toUpperCase()}</span>
+        <span class="pill queued">${m.priority}</span>
+        <span class="meta mono" style="margin-left:auto">budget $${m.budget.spent.toFixed(2)} / $${m.budget.daily.toFixed(2)}</span>
+      </div>
+      <div class="bar" style="margin-top:8px"><i style="width:${m.pct}%"></i></div>
+      <p class="meta" style="margin:6px 0 0">${esc(m.brief)}</p>
+      <div class="lens">
+        <b class="fable">FABLE</b><span class="fable">${esc(m.lens.fable)}</span>
+        <b class="grok">GROK</b><span class="grok">${esc(m.lens.grok)}</span>
+        <b class="terra">TERRA</b><span class="terra">${esc(m.lens.terra)}</span>
+      </div>
+    </div>
+    <h3 class="sec">What needs you now</h3>
+    ${m.needsYou.map(n=>`<div class="card" style="display:flex;gap:10px;align-items:baseline">
+      <span class="pill ${n.risk}">${n.risk.toUpperCase()}</span><span>${esc(n.txt)}</span>
+      <button class="btn" style="margin-left:auto" onclick="openWin('${n.kind==="approval"?"approvals":"evidence"}')">Open</button></div>`).join("")}
+    <h3 class="sec">Workstreams — task graph</h3>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+    ${["Engineering","Research","Product","Verification"].map(lane=>`
+      <div><div class="meta" style="font-weight:650;margin-bottom:4px">${lane}</div>
+      ${DEMO.tasks.filter(t=>t.lane===lane).map(t=>`
+        <div class="card" style="padding:8px 10px">
+          <div class="mono" style="color:var(--dim)">${t.id}${t.dep?` ⟵ ${t.dep}`:""}</div>
+          <div style="font-size:12px;margin:2px 0">${esc(t.title)}</div>
+          <span class="pill ${t.state}">${t.state.toUpperCase()}</span>
+          <span class="meta" style="font-size:10px"> ${esc(t.owner)}</span>
+          <div class="meta" style="font-size:10px;margin-top:2px">evidence: ${t.ev==="pass"?'<span class="tick">✓ bundle</span>':t.ev==="partial"?'<span class="pend">◐ partial</span>':'<span class="meta">— none yet</span>'}</div>
+        </div>`).join("")}</div>`).join("")}
+    </div>
+    <div style="margin-top:10px">
+      <button class="btn" onclick="simulated('Pause mission MSN-0301')">Pause mission</button>
+      <button class="btn" onclick="simulated('Add constraint to MSN-0301')">Add constraint</button>
+      <button class="btn" onclick="openWin('evidence')">Review evidence</button>
+      <button class="btn" onclick="openWin('approvals')">Open escalation</button>
+    </div>`;
+};
+R.agents = body => {
+  body.innerHTML = `<div class="ar">
+    <div class="ar-rail">
+      <h3 class="sec">Managers</h3>
+      ${DEMO.agents.filter(a=>a.tier==="manager").map(agRow).join("")}
+      <h3 class="sec">Workers</h3>
+      ${DEMO.agents.filter(a=>a.tier==="worker").map(agRow).join("")}
+    </div>
+    <div class="ar-feed">
+      <div class="note">Quiet mode — routine chatter collapsed; decisive events only. Labels follow the four-token law.</div>
+      ${DEMO.feed.map(u=>`<div class="upd ${u.typ}">
+        <span class="who">${esc(u.who)}</span><span class="typ">${u.typ.toUpperCase()}</span>
+        <span class="meta mono" style="float:right">${u.t}</span>
+        <div style="margin-top:3px;font-size:12.5px">${esc(u.body)} <span class="label-tok ${u.label}">${u.label.toUpperCase()}</span></div>
+      </div>`).join("")}
+      <div style="margin-top:6px">
+        <button class="btn" onclick="simulated('Ask Research Manager to validate the rollback plan')">Ask Research Manager…</button>
+        <button class="btn" onclick="simulated('Pause Backend Manager')">Pause Backend Manager</button>
+      </div>
+    </div></div>`;
+  function agRow(a){
+    return `<div class="ag" onclick="toast('${esc(a.name)}','${esc(a.task)} · model ${esc(a.model)} · tools: ${esc(a.tools)} · context ${a.ctx}')">
+      <div class="nm"><span class="sdot ${a.status}"></span>${esc(a.name)}</div>
+      <div class="st">${esc(a.status)} · ${esc(a.model.split(" ")[0])}</div>
+      <div class="trust">TRUST ${a.trust}</div></div>`;
+  }
+};
+R.approvals = body => {
+  const list = getApprovals();
+  body.innerHTML = `
+    ${LIVE.on?`<div class="note">LIVE — real escalation records from the runtime. Decisions execute only on the governed path (CLI / wired channel); this surface renders and previews.</div>`:""}
+    ${list.map(a=>`
+    <div class="card ${a.state==="awaiting"?"hi":""}">
+      <div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap">
+        <span class="pill ${a.risk}">${a.risk.toUpperCase()}</span>
+        <b>${esc(a.title)}</b>
+        <span class="meta mono" style="margin-left:auto">${esc(a.id)} · expires ${esc(a.expires)}</span>
+      </div>
+      <div class="kv"><b>requested by</b><span>${esc(a.agent)} · supervised by ${esc(a.mgr)}</span></div>
+      <div class="kv"><b>why review</b><span>${esc(a.why)}</span></div>
+      <div class="kv"><b>blast radius</b><span>${esc(a.blast)}</span></div>
+      <div class="kv"><b>reversibility</b><span>${esc(a.revers)}</span></div>
+      <div class="kv"><b>evidence</b><span>${a.evidence.map(e=>`<span class="mono">${esc(e)}</span>`).join("<br>")}</span></div>
+      <div class="kv"><b>alternatives</b><span>${a.alts.map(esc).join("<br>")}</span></div>
+      <div class="kv"><b>recommendation</b><span>${esc(a.rec)}</span></div>
+      <div class="kv"><b>exact permissions</b><span class="mono">${esc(a.perms)}</span></div>
+      ${a.state==="blocked"
+        ? `<div class="note" style="border-color:#553030;color:var(--danger)">POLICY BLOCKED — cannot be approved from any surface until evidence gates pass. This is the system working, not a bug.</div>
+           <button class="btn" disabled>Approve (blocked by policy)</button>
+           <button class="btn" onclick="simulated('Request safer alternative for ${a.id}')">Request safer alternative</button>`
+        : a.state==="awaiting"
+        ? `${a.confirm?`<div class="note">High risk requires typed confirmation on the governed path.</div>`:""}
+           <button class="btn primary" onclick="simulated('Approve ${a.id} (72h expiry)')">Approve</button>
+           <button class="btn danger" onclick="simulated('Reject ${a.id}')">Reject</button>
+           <button class="btn" onclick="simulated('Request safer alternative for ${a.id}')">Safer alternative</button>
+           <button class="btn" onclick="simulated('Pause work related to ${a.id}')">Pause related work</button>
+           <button class="btn" onclick="openWin('evidence')">Inspect evidence</button>`
+        : `<span class="meta">logged</span>`}
+    </div>`).join("")}`;
+};
+R.evidence = body => {
+  const e = DEMO.evidence;
+  body.innerHTML = `
+    <div class="card hi">
+      <div class="meta">completion claim</div>
+      <b style="font-size:14px">${esc(e.claim)}</b>
+      <div style="margin-top:6px"><span class="pill done">${esc(e.verdict)}</span></div>
+      <h3 class="sec">Evidence bundle</h3>
+      ${e.checks.map(c=>`<div class="evrow">
+        <span class="${c.s==="pass"?"tick":c.s==="pend"?"pend":"cross"}">${c.s==="pass"?"✓":c.s==="pend"?"◐":"✗"}</span>
+        <b style="min-width:120px;font-size:12px">${esc(c.n)}</b><span class="meta">${esc(c.d)}</span></div>`).join("")}
+    </div>
+    <div class="card" style="border-color:#553030">
+      <div class="meta">completion claim</div>
+      <b style="font-size:14px">${esc(e.rejected.claim)}</b>
+      <div style="margin-top:6px"><span class="pill failed">REJECTED — completion cannot be claimed</span></div>
+      <p class="meta" style="margin:6px 0 0">${esc(e.rejected.why)}</p>
+    </div>
+    <div class="note">"Done" is a claim that must survive verification. An agent saying finished is the beginning of the check, never the end. — vault doctrine, all three minds concur</div>`;
+};
+R.routing = body => {
+  const r = DEMO.routing;
+  let live = "";
+  if(LIVE.on && LIVE.data.models){
+    const m = LIVE.data.models;
+    live = `<div class="card hi"><h3 class="sec">Live router — by provider</h3>
+      ${Object.entries(m.by_provider||{}).map(([k,v])=>`<div class="kv"><b>${esc(k)}</b><span>${v} calls</span></div>`).join("")}
+      <div class="kv"><b>local / cloud</b><span>${m.local_count||0} / ${m.cloud_count||0}</span></div>
+      <div class="kv"><b>est cost Σ</b><span class="mono">$${Number(m.estimated_cost_sum||0).toFixed(4)}</span></div></div>`;
+  }
+  const pct = r.budgetPct * (r.postures[r.posture].mult);
+  body.innerHTML = `
+    ${live}
+    <div class="card hi">
+      <h3 class="sec">Cost posture</h3>
+      <div>${Object.keys(r.postures).map(p=>`<button class="btn ${p===r.posture?"primary":""}" onclick="setPosture('${p}')">${p}</button>`).join("")}</div>
+      <p class="meta" style="margin:6px 0 2px">${esc(r.postures[r.posture].note)}</p>
+      <div class="kv"><b>projected burn</b><span class="mono">${(r.postures[r.posture].mult).toFixed(2)}x baseline</span></div>
+      <div class="bar ${pct>80?"warn":""}"><i style="width:${Math.min(100,pct)}%"></i></div>
+      <div class="meta" style="font-size:10.5px">${pct>80?"⚠ budget warning — above 80% of daily budget at this posture":"mission budget consumption at this posture"}</div>
+    </div>
+    <h3 class="sec">Routing decisions — why this model</h3>
+    <table class="t"><thead><tr><th>Task</th><th>Model</th><th>Why</th><th>Est</th><th>Actual</th></tr></thead><tbody>
+    ${r.rows.map(x=>`<tr>
+      <td>${esc(x.task)}</td>
+      <td><span class="mono">${esc(x.model)}</span> <span class="pill ${x.cls==="local"?"done":"verifying"}" style="font-size:8.5px">${x.cls.toUpperCase()}</span></td>
+      <td class="meta">${esc(x.why)}${x.alts!=="—"?`<br><span style="color:var(--dim)">rejected: ${esc(x.alts)}</span>`:""}</td>
+      <td class="mono">$${x.est.toFixed(2)}</td><td class="mono">$${x.act.toFixed(2)}</td></tr>`).join("")}
+    </tbody></table>
+    <div class="note">Every routing decision is policy-checked: cheapest capable tier wins; risk-class work never routes below its floor.</div>`;
+};
+window.setPosture = p => { DEMO.routing.posture = p; render("routing"); toast("Routing posture → "+p, DEMO.routing.postures[p].note); };
+R.historian = body => {
+  let liveTl = "";
+  if(LIVE.on && LIVE.data.overview){
+    liveTl = (LIVE.data.overview.timeline||[]).slice(0,8).map(t=>`
+      <div class="tl-ev"><span class="t">${esc(String(t.ts||"").slice(11,16))}</span>
+      <span class="tl-k ${t.kind==="decision"?"dec":"app"}">${esc(t.kind)}</span><span>${esc(t.text||"")} <span class="meta">[${esc(t.label||"")}]</span></span></div>`).join("");
+  }
+  body.innerHTML = `
+    <div class="card hi"><h3 class="sec">Repeated pattern — historian finding</h3>
+      <p class="meta" style="margin:0">${esc(DEMO.historian.pattern)}</p></div>
+    <h3 class="sec">Memory graph <span style="text-transform:none;letter-spacing:0">(click a node)</span></h3>
+    <svg id="hgraph" height="190" viewBox="0 0 700 190" preserveAspectRatio="none"></svg>
+    <h3 class="sec">Cause → effect timeline ${LIVE.on?"(demo mission)":""}</h3>
+    ${DEMO.historian.timeline.map(t=>`<div class="tl-ev"><span class="t">${t.t}</span>
+      <span class="tl-k ${t.k}">${{obs:"observe",dec:"decide",del:"delegate",ev:"evidence",app:"approval",res:"result"}[t.k]}</span>
+      <span>${esc(t.txt)}</span></div>`).join("")}
+    ${liveTl?`<h3 class="sec">Live runtime timeline</h3>${liveTl}`:""}`;
+  const svg = body.querySelector("#hgraph");
+  const N = DEMO.historian.nodes, E = DEMO.historian.edges;
+  const px = n => n.x*700, py = n => n.y*190;
+  const kc = {mission:"#b8e34d", decision:"#b48ce0", task:"#7fd0cf", approval:"#e0b452", artifact:"#5fca8f", constraint:"#e05252"};
+  svg.innerHTML = E.map(([a,b])=>`<line x1="${px(N[a])}" y1="${py(N[a])}" x2="${px(N[b])}" y2="${py(N[b])}" stroke="#262b33" stroke-width="1.5"/>`).join("") +
+    N.map((n,i)=>`<g style="cursor:pointer" onclick="toast('${esc(n.id)}','${esc(n.kind)} node — linked to ${E.filter(e=>e.includes(i)).length} records. In the runtime this opens the underlying decision/artifact record.')">
+      <circle cx="${px(n)}" cy="${py(n)}" r="7" fill="${kc[n.kind]}" opacity=".85"/>
+      <text x="${px(n)}" y="${py(n)-13}" fill="#8d94a0" font-size="9.5" text-anchor="middle" font-family="ui-monospace">${esc(n.id)}</text></g>`).join("");
+};
+R.artifacts = body => {
+  body.innerHTML = `<div class="afx">
+    <div class="afx-tree">
+      <h3 class="sec">AgentGRIT Core / v0.3</h3>
+      ${DEMO.artifacts.map((a,i)=>`<div class="afile ${i===AFSEL?"sel":""}" onclick="AFSEL=${i};render('artifacts')">
+        <span>${a.n.endsWith(".json")?"{}":a.n.endsWith(".patch")?"±":"≡"}</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.n)}</span>
+        <span class="chg ${a.chg}">${a.chg.toUpperCase()}</span></div>`).join("")}
+    </div>
+    <div class="afx-view">
+      ${(()=>{const a=DEMO.artifacts[AFSEL];return `
+        <div class="kv"><b>artifact</b><span class="mono">${esc(a.n)}</span></div>
+        <div class="kv"><b>created by</b><span>${esc(a.by)} · task ${a.task}</span></div>
+        <div class="kv"><b>verification</b><span>${esc(a.ver)}</span></div>
+        <pre class="code">${esc(a.body.replace(/\\n/g,"\n"))}</pre>`})()}
+    </div></div>`;
+};
+let AFSEL = 0;
+R.policy = body => {
+  const p = DEMO.policy;
+  let liveByl = "";
+  if(LIVE.on && LIVE.data.governance){
+    liveByl = `<h3 class="sec">Live bylaw log</h3>` + (LIVE.data.governance.bylaws||[]).slice(0,5).map(b=>`
+      <div class="evrow"><span class="${b.action==="block"?"cross":"pend"}">${b.action==="block"?"✗":"▲"}</span>
+      <b style="min-width:90px;font-size:11px">${esc(b.rule||"")}</b><span class="meta mono">${esc(b.command||"")}</span></div>`).join("");
+  }
+  body.innerHTML = `
+    <h3 class="sec">Trust ladder — autonomy is earned</h3>
+    <div class="ladder">${p.ladder.map((r,i)=>`<div class="rung ${i===1?"at":""}">${r[0]}<span class="n">${r[1]}</span></div>`).join("")}</div>
+    <p class="meta">${esc(p.trustNote)}</p>
+    ${p.trustEvents.map(t=>`<div class="evrow"><span class="${t.dir.includes("↑")?"tick":t.dir==="·"?"pend":"cross"}">${t.dir}</span>
+      <b style="min-width:140px;font-size:12px">${esc(t.who)}</b><span class="meta">${esc(t.why)} → <b>${t.to}</b></span></div>`).join("")}
+    <h3 class="sec">Bylaw categories — deterministic, not prompts</h3>
+    <table class="t"><thead><tr><th>Category</th><th>Example</th><th>Outcome</th></tr></thead><tbody>
+    ${p.bylaws.map(b=>`<tr><td><span class="pill ${b.cat==="absolute block"?"blocked":b.cat==="escalate"?"awaiting":b.cat==="verify-before-done"?"verifying":"done"}">${esc(b.cat)}</span></td>
+      <td class="mono">${esc(b.ex)}</td><td class="meta">${esc(b.s)}</td></tr>`).join("")}
+    </tbody></table>
+    <h3 class="sec">Policy decision log</h3>
+    ${p.log.map(l=>`<div class="evrow"><span class="mono" style="color:var(--dim);min-width:44px">${l.t}</span>
+      <b style="min-width:150px;font-size:11px" class="mono">${esc(l.rule)}</b>
+      <span class="pill ${l.act==="BLOCK"?"blocked":l.act==="ESCALATE"?"awaiting":"failed"}" style="font-size:8.5px">${esc(l.act)}</span>
+      <span class="meta mono" style="font-size:10.5px">${esc(l.cmd)}</span></div>`).join("")}
+    ${liveByl}`;
+};
+
+/* ── command palette ────────────────────────────────────────────────── */
+const CMDS = [
+  {t:"Brief me on everything", hint:"synthesis", run(){ openWin("mission"); toast("Brief","Mission 68% · 1 approval awaits you (APR-114, medium) · 1 blocked task (ENG-107) · budget 36% · no policy violations today. Full three-lens brief in Mission Control."); }},
+  {t:"What is blocked right now?", hint:"query", run(){ openWin("mission"); toast("Blocked","ENG-107 (production notification provider) — waiting on APR-114 credential approval. APR-117 (prod deploy) is policy-blocked pending evidence.", "warn"); }},
+  {t:"Open approvals", hint:"⌘1", run(){ openWin("approvals"); }},
+  {t:"Show evidence for ENG-104", hint:"query", run(){ openWin("evidence"); }},
+  {t:"Pause Backend Manager", hint:"agent · consequential", risky:true, run(){ simulated("Pause Backend Manager"); }},
+  {t:"Ask Research Manager to validate the rollback plan", hint:"delegate", risky:true, run(){ simulated("Delegate: Research Manager ← validate rollback plan"); }},
+  {t:"Switch routing to Local-first", hint:"policy posture", run(){ setPosture("Local-first"); openWin("routing"); }},
+  {t:"Switch routing to Conservative", hint:"policy posture", run(){ setPosture("Conservative"); openWin("routing"); }},
+  {t:"Show prior failures on deployment workflow", hint:"historian", run(){ openWin("historian"); toast("Historian","Repeated pattern surfaced: two deploy delays caused by missing rollback evidence — now a bylaw-level gate."); }},
+  {t:"Approve only low-risk actions", hint:"consequential", risky:true, run(){ simulated("Set approval mode: low-risk auto, rest escalate"); }},
+  {t:"Global pause — all low-priority work", hint:"consequential", risky:true, run(){ simulated("Global pause for P2+ work"); }},
+  {t:"Open Policy + Trust", hint:"⌘2", run(){ openWin("policy"); }},
+];
+let PSEL = 0, PARMED = -1;
+function palRender(q){
+  const items = CMDS.map((c,i)=>({c,i})).filter(x=>x.c.t.toLowerCase().includes(q.toLowerCase()));
+  $("#pallist").innerHTML = items.map((x,vi)=>`<div class="palit ${vi===PSEL?"sel":""}" data-i="${x.i}">
+    <span>${esc(x.c.t)}</span>${x.c.risky?`<span class="risk">${PARMED===x.i?"PRESS ENTER TO CONFIRM (SIMULATED)":"PREVIEW REQUIRED"}</span>`:""}<span class="hint">${esc(x.c.hint)}</span></div>`).join("")
+    || `<div class="palit"><span class="meta">No matching command — natural language routes to GRIT Lead in the runtime.</span></div>`;
+  return items;
+}
+function palOpen(){ $("#pal").classList.add("on"); $("#palin").value=""; PSEL=0; PARMED=-1; palRender(""); $("#palin").focus(); }
+function palClose(){ $("#pal").classList.remove("on"); PARMED=-1; }
+document.addEventListener("keydown", e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); $("#pal").classList.contains("on")?palClose():palOpen(); return; }
+  if(!$("#pal").classList.contains("on")) return;
+  const items = palRender($("#palin").value);
+  if(e.key==="Escape") palClose();
+  else if(e.key==="ArrowDown"){ PSEL=Math.min(PSEL+1, items.length-1); palRender($("#palin").value); e.preventDefault(); }
+  else if(e.key==="ArrowUp"){ PSEL=Math.max(PSEL-1,0); palRender($("#palin").value); e.preventDefault(); }
+  else if(e.key==="Enter"){
+    const it = items[PSEL]; if(!it) return;
+    if(it.c.risky && PARMED!==it.i){ PARMED=it.i; palRender($("#palin").value);
+      toast("Command preview","'"+it.c.t+"' is consequential — structured preview shown; Enter again to run the simulation.", "warn"); return; }
+    palClose(); it.c.run();
+  }
+});
+$("#palin") && $("#palin").addEventListener("input", ()=>{ PSEL=0; PARMED=-1; palRender($("#palin").value); });
+$("#pallist").addEventListener("click", e=>{
+  const el = e.target.closest(".palit"); if(!el||el.dataset.i===undefined) return;
+  const c = CMDS[+el.dataset.i];
+  if(c.risky && PARMED!==+el.dataset.i){ PARMED=+el.dataset.i; palRender($("#palin").value); return; }
+  palClose(); c.run();
+});
+
+/* ── boot ───────────────────────────────────────────────────────────── */
+function render(id){ const w = WM[id]; if(w && !w.min) R[id] && R[id](w.el.querySelector(".win-body")); }
+function renderAll(){ for(const id in WM) render(id); renderDock(); }
+function tick(){ const d = new Date(); $("#clock").textContent = d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
+setInterval(tick, 15000); tick();
+["mission","agents","approvals"].forEach(openWin);
+renderDock(); updateHealth(); tryLive();
+setTimeout(()=>toast("AgentGRIT Desktop","Governed command environment. ⌘K for commands. Everything you see maps to a runtime primitive; nothing here can act."), 600);
+</script>
+</body>
+</html>

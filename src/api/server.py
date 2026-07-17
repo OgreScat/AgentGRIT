@@ -309,6 +309,19 @@ def _set_last_observe_for_tests(payload: dict[str, Any] | None) -> None:
 # CONSOLE — read-only operator dashboard (renders logs; never acts)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+@app.get("/desktop", response_class=HTMLResponse, tags=["Console"])
+async def desktop_page() -> HTMLResponse:
+    """AgentGRIT Desktop — windowed command environment (READ-ONLY).
+
+    Self-contained HTML, no CDN, no external assets. Renders governed state
+    through the same GET /console/data rollups the ops console uses; issues
+    GET requests only and can never act. Standalone (no API) it falls back
+    to a labeled structured demo state.
+    """
+    html = (Path(__file__).resolve().parent / "desktop.html").read_text(encoding="utf-8")
+    return HTMLResponse(content=html)
+
+
 @app.get("/console", response_class=HTMLResponse, tags=["Console"])
 async def console_page() -> HTMLResponse:
     """Serve the local operator console (self-contained HTML, no CDN).
