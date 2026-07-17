@@ -31,40 +31,51 @@ class RoleProfile:
 
 
 ROLE_PROFILES: dict[str, RoleProfile] = {
+    # DOCTRINE (operator, 2026-07-17): every tier carries the FULL four-mind
+    # corpus — Fable, Grok, Terra, and the Synthesis intermingle and brainstorm
+    # together at every seat. No mind is siloed to a role. The only dials are
+    # practical: byte budgets for small local models, and admission state
+    # (quarantine is never retrievable for anyone). Selection order is the
+    # manifest order: synthesis + protocol doctrine first.
     "grit_jr": RoleProfile(
         role="grit_jr",
-        allowed_types=frozenset({"playbook", "standing_instructions"}),
-        max_artifacts=2,
-        max_bytes=16_000,
-        description="Junior worker: narrow task playbooks only; no authority.",
+        allowed_types=frozenset({
+            "doctrine", "playbook", "routing_rubric", "standing_instructions",
+            "operator_manual", "trap_tests", "eval", "model_profile", "adapter_code",
+        }),
+        max_artifacts=3,
+        max_bytes=20_000,
+        description="Junior worker: full brain, tight budget for the local model.",
     ),
     "grit": RoleProfile(
         role="grit",
         allowed_types=frozenset({
-            "doctrine", "playbook", "routing_rubric", "operator_manual", "model_profile",
+            "doctrine", "playbook", "routing_rubric", "standing_instructions",
+            "operator_manual", "trap_tests", "eval", "model_profile", "adapter_code",
         }),
         max_artifacts=5,
         max_bytes=40_000,
-        description="Core executor: decision frameworks + routing rubrics.",
+        description="Core executor: full brain, mid budget.",
     ),
     "grit_gm": RoleProfile(
         role="grit_gm",
         allowed_types=frozenset({
-            "doctrine", "eval", "trap_tests", "routing_rubric", "operator_manual",
+            "doctrine", "playbook", "routing_rubric", "standing_instructions",
+            "operator_manual", "trap_tests", "eval", "model_profile", "adapter_code",
         }),
         max_artifacts=6,
         max_bytes=48_000,
-        description="Senior reviewer: standards, risk checklists, evals.",
+        description="Project leader: full brain, wide budget.",
     ),
     "super_gm": RoleProfile(
         role="super_gm",
         allowed_types=frozenset({
-            "doctrine", "eval", "trap_tests", "routing_rubric",
-            "operator_manual", "model_profile", "playbook",
+            "doctrine", "playbook", "routing_rubric", "standing_instructions",
+            "operator_manual", "trap_tests", "eval", "model_profile", "adapter_code",
         }),
         max_artifacts=8,
         max_bytes=64_000,
-        description="Cross-project reviewer: grades, optimizes assignments, briefs the human.",
+        description="Cross-project reviewer: full brain, widest budget.",
     ),
 }
 

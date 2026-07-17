@@ -58,12 +58,26 @@ promotes them.
 
 ## Agent role profiles
 
-| Role | Receives (approved artifacts only) | Budget |
+| Role | Receives | Budget |
 |---|---|---|
-| **GRIT JR** | task playbooks, standing instructions | 2 artifacts / 16 KB |
-| **GRIT** | synthesis doctrine, playbooks, routing rubrics, operator manuals, model profiles | 5 / 40 KB |
-| **GRIT GM** | doctrine, evals, trap tests, routing rubrics, operator manuals | 6 / 48 KB |
-| **SUPER GM** | doctrine (incl. the review protocol), evals, trap tests, rubrics, manuals, model profiles, playbooks | 8 / 64 KB |
+| **GRIT JR** | the full four-mind corpus | 3 artifacts / 20 KB |
+| **GRIT** | the full four-mind corpus | 5 / 40 KB |
+| **GRIT GM** | the full four-mind corpus | 6 / 48 KB |
+| **SUPER GM** | the full four-mind corpus | 8 / 64 KB |
+
+**One brain, four seats.** Every tier carries the same vault — Fable,
+Grok, Terra, and the Synthesis intermingle and brainstorm together at
+every seat; a lens outside its home domain may land the decisive
+insight at any tier. Budgets are practical (a 12B local model cannot
+carry 64 KB of doctrine), never doctrinal. Selection order is the
+manifest order: synthesis and protocol doctrine load first.
+
+**Local brain; subscription, not API.** The vault is consumed locally
+by the local model. When a runtime substitutes an operator's own
+subscription LLM (their ChatGPT, Kimi, Codex, or any other), vault
+context travels as normal prompt injection inside that surface —
+billed to the subscription the operator already pays for, never to a
+metered API key. The reasoning stays in the room.
 
 The intended hierarchy: **GRIT JR** works a project's minute tasks under the
 drone contract; **GRIT** executes the project's larger work and checks JR;

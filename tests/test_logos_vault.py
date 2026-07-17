@@ -175,3 +175,14 @@ def test_grit_receives_doctrine(tmp_path):
     report = validate_vault(_cfg(vault))
     sel = select_for_role(report.manifest, "grit")
     assert any(a.artifact_type == "doctrine" for a in sel)
+
+
+def test_full_brain_every_role(tmp_path):
+    """Doctrine: every tier carries the full corpus — no mind is role-siloed."""
+    vault = _plant_vault(tmp_path)
+    report = validate_vault(_cfg(vault))
+    for role in ("grit_jr", "grit", "grit_gm", "super_gm"):
+        sel = select_for_role(report.manifest, role)
+        assert sel, role
+        assert any(a.artifact_type == "doctrine" for a in sel), role
+        assert all(a.artifact_type != "raw_handoff" for a in sel), role

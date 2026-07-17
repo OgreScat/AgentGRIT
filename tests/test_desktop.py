@@ -77,3 +77,9 @@ def test_desktop_v3_aide_holds_no_authority():
     assert "not an actuator" in HTML
     assert "I hold no authority" in HTML
     assert "interrupt for nothing below HIGH" in HTML
+
+
+def test_desktop_v4_orb_draggable_and_local_doctrine():
+    assert "grit-aide-pos" in HTML          # persisted orb position
+    assert "stopImmediatePropagation" in HTML  # drag does not trigger toggle
+    assert "own LLM subscriptions" in HTML  # subscription, not API

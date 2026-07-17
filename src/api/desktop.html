@@ -794,7 +794,7 @@ R.routing = body => {
       <td class="meta">${esc(x.why)}${x.alts!=="—"?`<br><span style="color:var(--dim)">rejected: ${esc(x.alts)}</span>`:""}</td>
       <td class="mono">$${x.est.toFixed(2)}</td><td class="mono">$${x.act.toFixed(2)}</td></tr>`).join("")}
     </tbody></table>
-    <div class="note">Every routing decision is policy-checked: cheapest capable tier wins; risk-class work never routes below its floor.</div>`;
+    <div class="note">Every routing decision is policy-checked: cheapest capable tier wins; risk-class work never routes below its floor. Cloud tiers use the operator's own LLM subscriptions via normal prompt injection \u2014 never metered API keys. The reasoning brain itself stays local.</div>`;
 };
 window.setPosture = p => { DEMO.routing.posture = p; render("routing"); toast("Routing posture → "+p, DEMO.routing.postures[p].note); };
 R.historian = body => {
@@ -1494,6 +1494,61 @@ renderDock();
 setTimeout(()=>{ toast("GRIT Aide online","The oracle orb (bottom-right, ⌘J) watches everything and interrupts for nothing below HIGH. Ask it 'where do I start?'","ok"); }, RM?400:2200);
 })();
 
+</script>
+<script id="v4js">
+/* ═══ V4 — draggable Aide orb (click preserved, position persisted) ═══ */
+(function(){
+"use strict";
+const orb = document.getElementById("aide-orb");
+const panel = document.getElementById("aide");
+if(!orb) return;
+function placePanel(){
+  if(!panel) return;
+  const r = orb.getBoundingClientRect();
+  if(orb.style.left){ // orb has been moved from its default corner
+    panel.style.right = "auto"; panel.style.bottom = "auto";
+    panel.style.left = Math.max(8, Math.min(innerWidth-370, r.left-320)) + "px";
+    panel.style.top = Math.max(34, Math.min(innerHeight-320, r.top-400)) + "px";
+  }
+}
+try{
+  const s = JSON.parse(localStorage.getItem("grit-aide-pos")||"null");
+  if(s){ orb.style.right="auto"; orb.style.bottom="auto";
+    orb.style.left = Math.max(4,Math.min(innerWidth-50,s.x))+"px";
+    orb.style.top = Math.max(30,Math.min(innerHeight-50,s.y))+"px"; placePanel(); }
+}catch(e){}
+let moved = false;
+orb.style.cursor = "grab";
+orb.addEventListener("mousedown", e=>{
+  const sx=e.clientX, sy=e.clientY;
+  const r = orb.getBoundingClientRect(); const ox=r.left, oy=r.top;
+  moved = false; orb.style.cursor = "grabbing";
+  const mv = ev=>{
+    const dx=ev.clientX-sx, dy=ev.clientY-sy;
+    if(Math.abs(dx)>4||Math.abs(dy)>4) moved = true;
+    if(!moved) return;
+    orb.style.right="auto"; orb.style.bottom="auto";
+    orb.style.left = Math.max(4,Math.min(innerWidth-50,ox+dx))+"px";
+    orb.style.top = Math.max(30,Math.min(innerHeight-50,oy+dy))+"px";
+    placePanel();
+  };
+  const up = ()=>{
+    document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up);
+    orb.style.cursor = "grab";
+    if(moved){
+      const rr = orb.getBoundingClientRect();
+      try{ localStorage.setItem("grit-aide-pos", JSON.stringify({x:rr.left,y:rr.top})); }catch(e){}
+    }
+  };
+  document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+  e.preventDefault();
+});
+/* capture-phase: a drag must not fire the click-to-toggle */
+orb.addEventListener("click", e=>{
+  if(moved){ e.stopImmediatePropagation(); e.preventDefault(); moved=false; return; }
+  setTimeout(placePanel, 0); // after toggle, anchor panel near wherever the orb lives
+}, true);
+})();
 </script>
 </body>
 </html>
