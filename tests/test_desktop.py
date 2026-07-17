@@ -61,3 +61,19 @@ def test_desktop_v2_still_never_acts():
     assert "SIMULATED" in HTML
     assert "never under-floor" in HTML or "can never under-floor" in HTML
     assert "self_expand_authority" in HTML
+
+
+def test_desktop_v3_aide_and_flows():
+    """V3: GRIT Aide oracle, workflow canvas, tabbed editor, boot sequence."""
+    for marker in ("aide-orb", "GRIT Aide", "Logos four-mind", "where do I start",
+                   "Workflow — the governed path", "Run simulation", "fl-node",
+                   "drone-contract.md", "logos-synthesis.md", "ed-tab",
+                   "governed autonomous work"):
+        assert marker in HTML, marker
+
+
+def test_desktop_v3_aide_holds_no_authority():
+    """The oracle points; it never pushes. Consequential asks route to approvals."""
+    assert "not an actuator" in HTML
+    assert "I hold no authority" in HTML
+    assert "interrupt for nothing below HIGH" in HTML

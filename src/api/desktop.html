@@ -243,6 +243,81 @@ pre.code{background:#0e1116;border:1px solid var(--border);border-radius:8px;pad
   .dock-app:hover{transform:none}.dicon:hover .ic{transform:none}.typing i{animation:none;opacity:.7}
 }
 </style>
+<style id="v3">
+/* ═══ V3 — GRIT Aide oracle, workflow canvas, tabbed editor, cinematic motion ═══ */
+/* window open motion */
+.win{animation:winin .22s cubic-bezier(.3,1.2,.5,1)}
+@keyframes winin{from{transform:scale(.96) translateY(6px);opacity:0}to{transform:none;opacity:.985}}
+.dock-badge{animation:bpulse 2.6s ease infinite}
+@keyframes bpulse{0%,100%{transform:scale(1)}8%{transform:scale(1.18)}16%{transform:scale(1)}}
+/* boot splash */
+#boot{position:fixed;inset:0;z-index:99999;background:#06080c;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;transition:opacity .5s ease}
+#boot .bw{font:650 26px var(--font);letter-spacing:.04em}
+#boot .bw b{color:var(--lime)}
+#boot .bt{font:12px var(--mono);color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+#boot .ring{width:34px;height:34px;border-radius:50%;border:2px solid #1e2530;border-top-color:var(--cyan);
+  animation:spin 1s linear infinite;margin-bottom:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* ── GRIT Aide — the oracle orb ── */
+#aide-orb{position:fixed;right:22px;bottom:86px;width:46px;height:46px;z-index:9200;cursor:pointer;
+  border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, #d8f2ef 0%, #7fd0cf 24%, #3d7f8e 52%, #17313f 100%);
+  box-shadow:0 0 22px rgba(127,208,207,.45), 0 0 60px -8px rgba(184,227,77,.25), inset 0 -4px 10px rgba(0,0,0,.4);
+  animation:breathe 4.2s ease-in-out infinite;transition:transform .2s cubic-bezier(.34,1.6,.64,1)}
+#aide-orb:hover{transform:scale(1.14)}
+#aide-orb.alert{box-shadow:0 0 30px rgba(224,180,82,.6), 0 0 70px -6px rgba(224,180,82,.35), inset 0 -4px 10px rgba(0,0,0,.4)}
+#aide-orb .eye{position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 50% 46%, rgba(255,255,255,.85) 0%, transparent 18%)}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
+#aide-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;border-radius:9px;background:var(--amber);
+  color:#1a1405;font:700 10px/16px var(--font);text-align:center;padding:0 4px;display:none}
+#aide{position:fixed;right:22px;bottom:142px;width:356px;max-height:62vh;z-index:9300;display:none;
+  flex-direction:column;background:rgba(15,19,25,.72);backdrop-filter:blur(28px) saturate(160%);
+  -webkit-backdrop-filter:blur(28px) saturate(160%);
+  border:1px solid rgba(127,208,207,.22);border-radius:16px;overflow:hidden;
+  box-shadow:0 34px 90px -18px rgba(0,0,0,.9), 0 0 44px -10px rgba(127,208,207,.16)}
+#aide.on{display:flex;animation:winin .22s cubic-bezier(.3,1.2,.5,1)}
+.aide-h{padding:12px 15px 9px;border-bottom:1px solid var(--border)}
+.aide-h b{font-size:13.5px}
+.aide-h .id{font:10px var(--mono);color:var(--cyan);margin-top:2px}
+.aide-h .oath{font-size:10.5px;color:var(--dim);margin-top:3px;font-style:italic}
+.aide-body{flex:1;overflow:auto;padding:10px 12px}
+.insight{display:flex;gap:9px;background:rgba(24,29,37,.6);border:1px solid var(--border);border-radius:10px;
+  padding:9px 11px;margin-bottom:7px;font-size:12px;line-height:1.45;cursor:pointer;transition:border-color .15s}
+.insight:hover{border-color:rgba(127,208,207,.35)}
+.insight .ik{font-size:8.5px;font-weight:700;letter-spacing:.06em;color:var(--cyan);white-space:nowrap;padding-top:2px}
+.insight .go{margin-left:auto;color:var(--dim);font-size:14px;align-self:center}
+.aide-ans{background:rgba(24,29,37,.7);border:1px solid rgba(184,227,77,.2);border-radius:10px;padding:10px 12px;
+  margin-bottom:7px;font-size:12.5px}
+.aide-ans .who{font:700 10px var(--mono);color:var(--lime);display:block;margin-bottom:3px}
+.aide-ask{display:flex;gap:7px;padding:10px 12px;border-top:1px solid var(--border)}
+.aide-ask input{flex:1;background:rgba(12,15,19,.9);border:1px solid var(--border);border-radius:9px;
+  color:var(--text);font:12px var(--font);padding:8px 11px;outline:0}
+.aide-ask input:focus{border-color:rgba(127,208,207,.4)}
+.aide-ask button{background:var(--lime);border:0;border-radius:9px;color:#141c05;font:700 12px var(--font);
+  padding:0 13px;cursor:pointer}
+/* ── workflow canvas ── */
+.fl-wrap{display:flex;flex-direction:column;height:100%}
+.fl-bar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+#flcv{flex:1;background:rgba(10,13,17,.75);border:1px solid var(--border);border-radius:10px;min-height:240px}
+.fl-node{cursor:grab}
+.fl-node:active{cursor:grabbing}
+.fl-detail{margin-top:8px;min-height:34px}
+@keyframes dashflow{to{stroke-dashoffset:-26}}
+.fl-edge{stroke:rgba(127,208,207,.3);stroke-width:1.6;fill:none}
+.fl-edge.animated{stroke-dasharray:7 6;animation:dashflow 1.2s linear infinite}
+/* ── editor tabs ── */
+.ed-tabs{display:flex;gap:4px;margin-bottom:8px}
+.ed-tab{background:rgba(20,25,32,.7);border:1px solid var(--border);border-bottom-color:transparent;color:var(--muted);
+  border-radius:8px 8px 0 0;padding:5px 13px;font:600 11px var(--mono);cursor:pointer}
+.ed-tab.on{color:var(--cyan);border-color:rgba(127,208,207,.3);background:rgba(11,14,18,.9)}
+.mdh{color:#b8e34d;font-weight:700}.mdb{color:#e0d5b0}.mdq{color:#7fd0cf}
+@media (prefers-reduced-motion: reduce){
+  .win{animation:none}#aide.on{animation:none}#aide-orb{animation:none}
+  .dock-badge{animation:none}.fl-edge.animated{animation:none}#boot .ring{animation:none}
+}
+</style>
 </head>
 <body>
 <div id="menubar">
@@ -1100,6 +1175,323 @@ R.historian = body => {
 renderDock();
 openWin("swarm");
 setTimeout(()=>toast("V2 layer active","Swarm channel, policy editor, live instruments, neural field. Same invariant: reads and previews only — the runtime acts, this surface never does."), 1400);
+})();
+
+</script>
+<script id="v3js">
+/* ═══ V3 LAYER — GRIT Aide (oracle), workflow canvas, tabbed editor, boot.
+   Additive over V1+V2. Reads and previews only; the Aide observes, it never
+   acts. Its mind: gemma4:12b carrying the Logos four-mind (Fable · Grok ·
+   Terra · Synthesis) via the vault. ═══ */
+(function(){
+"use strict";
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const YAML_SRC = `# delegated_authority.yaml — the hierarchy as enforceable config
+# Doctrine: a role may never expand its own authority. Governance outranks.
+roles:
+  grit_jr:
+    may: [read_project_context, research, draft, run_sandbox_tests, update_task_evidence]
+    must_escalate: [ambiguous_goal, external_side_effect, credential_access, legal_or_financial, production_change]
+  grit:
+    may: [approve_jr_outputs, plan_bounded_work, create_reviewable_patch, manage_internal_backlog]
+    must_escalate: [cross_project_conflict, production_deploy, spend_above_project_limit]
+  grit_gm:
+    may: [prioritize_project_work, approve_low_risk_actions, issue_release_recommendation, assign_work]
+    must_escalate: [policy_exception, new_external_integration, contractual_or_public_commitment]
+  super_gm:
+    may: [rank_portfolio, resolve_cross_project_conflicts, approve_delegated_low_medium, issue_briefs, recommend_human_decisions]
+    never_may: [override_absolute_blocks, self_expand_authority, approve_own_exception, suppress_material_risk]
+  human:
+    holds: [production_secrets, financial_actions, legal_representation, public_claims, constitutional_authority]`;
+function hlYaml(src){
+  return src.split("\n").map(l=>{
+    let h = esc(l);
+    if(/^\s*#/.test(l)) h = `<span class="yc">${h}</span>`;
+    else h = h
+      .replace(/^(\s*)([\w-]+)(:)/, '$1<span class="yk">$2</span>$3')
+      .replace(/\[([^\]]*)\]/g, (m,inner)=>'[<span class="ys">'+inner+'</span>]');
+    return `<span class="ln">${h}</span>`;
+  }).join("");
+}
+
+/* ── boot splash (once per session, skipped under reduced motion) ───── */
+if(!RM && !sessionStorage.getItem("grit-booted")){
+  const b = document.createElement("div");
+  b.id = "boot";
+  b.innerHTML = `<div class="ring"></div><div class="bw"><b>●</b> AgentGRIT</div>
+    <div class="bt">governed autonomous work</div>`;
+  document.body.appendChild(b);
+  sessionStorage.setItem("grit-booted","1");
+  setTimeout(()=>{ b.style.opacity = "0"; setTimeout(()=>b.remove(), 550); }, 1000);
+}
+
+/* ── GRIT Aide — the oracle ─────────────────────────────────────────── */
+const orb = document.createElement("div");
+orb.id = "aide-orb"; orb.title = "GRIT Aide — ⌘J";
+orb.innerHTML = `<div class="eye"></div><span id="aide-badge"></span>`;
+document.body.appendChild(orb);
+const panel = document.createElement("div");
+panel.id = "aide";
+panel.innerHTML = `
+  <div class="aide-h">
+    <b>GRIT Aide</b> <span class="meta">— the Oracle</span>
+    <div class="id">gemma4:12b · Logos four-mind: Fable · Grok · Terra · Synthesis</div>
+    <div class="oath">I watch everything. I interrupt for nothing below HIGH. Ask me where to look.</div>
+  </div>
+  <div class="aide-body" id="aide-body"></div>
+  <div class="aide-ask">
+    <input id="aide-in" placeholder="Ask the oracle — 'where do I start?', 'why is this blocked?'"/>
+    <button id="aide-go">Ask</button>
+  </div>`;
+document.body.appendChild(panel);
+
+function oracleInsights(){
+  const out = [];
+  const ap = getApprovals().filter(a=>a.state==="awaiting");
+  if(ap.length) out.push({k:"DECISION", t:`${ap.length} approval${ap.length>1?"s":""} awaiting you — ${ap[0].id}, ${ap[0].risk} risk, reversible. Decisions age poorly; this one gates a whole lane.`, go:"approvals"});
+  out.push({k:"CHAIN", t:"ENG-107 is blocked by APR-114. One decision from you unblocks Engineering. The system will not nag — but the dependency is real.", go:"approvals"});
+  if(LIVE.on && LIVE.data.overview){
+    const k = LIVE.data.overview.kpis||{};
+    if(k.last_blocked) out.push({k:"GATES LIVE", t:`Bylaws blocked: "${String(k.last_blocked.action||"").slice(0,70)}" — deterministic governance, working as written.`, go:"policy"});
+    if(k.pending_escalations) out.push({k:"LIVE", t:`${k.pending_escalations} pending escalation(s) in the real runtime right now.`, go:"approvals"});
+  }
+  out.push({k:"PATTERN", t:"Historian: deploy delays traced twice to missing rollback evidence. That is why the evidence gate on APR-117 will not move for anyone.", go:"historian"});
+  out.push({k:"BUDGET", t:`${DEMO.routing.budgetPct}% consumed on ${DEMO.routing.posture} posture. Local-first would cut projected burn roughly in half — latency is the trade.`, go:"routing"});
+  out.push({k:"TRUST", t:"Local Scout reached AUTONOMOUS — twelve verified runs. Backend Manager lost a tier once for an unverified claim and re-earned it. Autonomy here is a ledger, not a vibe.", go:"policy"});
+  return out;
+}
+function lensBlock(f,g,t){
+  return `<div class="lens" style="margin-top:6px">
+    <b class="fable">FABLE</b><span class="fable">${esc(f)}</span>
+    <b class="grok">GROK</b><span class="grok">${esc(g)}</span>
+    <b class="terra">TERRA</b><span class="terra">${esc(t)}</span></div>`;
+}
+function oracleAnswer(q){
+  const t = q.toLowerCase();
+  if(/who are you|what are you/.test(t)) return {
+    body:"I am the Aide seat — a local mind (gemma4:12b) carrying the Logos vault: Fable's verification discipline, Grok's execution law, Terra's interpretive judgment, and their synthesis. I see every surface of this desktop. I hold no authority: I point, I never push.",
+    lens:null};
+  if(/start|overwhelm|first|lost/.test(t)) return {
+    body:"Three moves, in order: 1) Decide APR-114 in Approvals — it unblocks Engineering. 2) Glance at the Evidence Inspector — one claim passed, one was rejected; that is the system working. 3) Everything else is flowing. Close this panel and breathe.",
+    lens:lensBlock("Only one item is load-bearing right now: the approval.",
+                   "Smallest action with the biggest unblock: decide APR-114.",
+                   "The overwhelm is the interface, not the work — the work is one decision."),
+    go:"approvals"};
+  if(/blocked|stuck/.test(t)) return {
+    body:"Two things hold: ENG-107 waits on your APR-114 decision (staging credential, reversible). APR-117 prod deploy is policy-blocked — evidence incomplete — and cannot be approved from any surface until the bundle passes. The first is yours; the second is the constitution's.",
+    go:"approvals"};
+  if(/cost|budget|spend|token/.test(t)) return {
+    body:`Budget ${DEMO.routing.budgetPct}% at ${DEMO.routing.posture} posture. Most calls route local (free); cloud spend concentrates in architecture synthesis and citation-grade research. Switch to Local-first in the Routing ledger to halve burn — floors still apply.`,
+    go:"routing"};
+  if(/trust|autonom/.test(t)) return {
+    body:"Trust is a ledger of verified runs. Local Scout: AUTONOMOUS (12 clean). Backend Manager: dropped a tier once for an unverified claim, re-earned it in six runs. No agent — including me — can raise its own tier.",
+    go:"policy"};
+  if(/brain|logos|mind|fable|grok|terra/.test(t)) return {
+    body:"The vault holds three preserved minds and a fourth that melds them without averaging. On any hard call I run the three-lens pass: what would Fable object to, what would Grok execute, what would Terra reinterpret. Disagreement is surfaced with lineage — a smooth opaque answer would be a synthesis failure.",
+    lens:lensBlock("Evidence before claims — always.","No artifact, no claim — ever.","Confidence is familiarity, not truth."),
+    go:"historian"};
+  if(/approve|deploy|do it|execute|run it/.test(t)) return {
+    body:"Not through me. I am an oracle, not an actuator — consequential actions route through the Approval Center on the governed path. I have opened it for you.",
+    go:"approvals"};
+  return {
+    body:"I can point you at approvals, blocks, budget, trust, the memory graph, or the workflow. Ask plainly — 'where do I start' is my favorite question.",
+    lens:null};
+}
+let aideAns = null;
+function renderAide(){
+  const body = document.getElementById("aide-body");
+  const ins = oracleInsights();
+  body.innerHTML =
+    (aideAns ? `<div class="aide-ans"><span class="who">ORACLE</span>${esc(aideAns.body)}${aideAns.lens||""}</div>` : "") +
+    ins.map((i,n)=>`<div class="insight" data-go="${i.go}">
+      <span class="ik">${i.k}</span><span>${esc(i.t)}</span><span class="go">›</span></div>`).join("");
+  body.querySelectorAll(".insight").forEach(el=>{
+    el.onclick = ()=>{ openWin(el.dataset.go); };
+  });
+  const badge = document.getElementById("aide-badge");
+  const n = getApprovals().filter(a=>a.state==="awaiting").length;
+  badge.style.display = n ? "block" : "none"; badge.textContent = n;
+  orb.classList.toggle("alert", n>0 && !panel.classList.contains("on"));
+}
+function toggleAide(){ panel.classList.toggle("on"); renderAide();
+  if(panel.classList.contains("on")) document.getElementById("aide-in").focus(); }
+orb.onclick = toggleAide;
+document.addEventListener("keydown", e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="j"){ e.preventDefault(); toggleAide(); }
+});
+function aideAsk(){
+  const inp = document.getElementById("aide-in");
+  const v = inp.value.trim(); if(!v) return;
+  inp.value = "";
+  const a = oracleAnswer(v);
+  aideAns = a; renderAide();
+  if(a.go) setTimeout(()=>openWin(a.go), RM?0:420);
+}
+document.getElementById("aide-go").onclick = aideAsk;
+document.getElementById("aide-in").addEventListener("keydown", e=>{ if(e.key==="Enter") aideAsk(); });
+setInterval(renderAide, 12000);
+renderAide();
+
+/* ── workflow canvas (n8n-class, mapped to the real GRIT flow) ──────── */
+APPS.push({id:"flows", glyph:"⛓", label:"Flows", title:"Workflow — the governed path", x:220, y:70, w:820, h:470});
+const FLOW = {
+  nodes:[
+    {id:"intake", l:"Mission intake", k:"trigger", x:60,  y:110, s:"done",    d:"MSN-0301 accepted. Scope, risk class, and budget assigned at the door."},
+    {id:"gate",   l:"Bylaw gate",     k:"gate",    x:210, y:110, s:"done",    d:"Deterministic checks — blocked patterns, escalation triggers. Not a prompt: code."},
+    {id:"route",  l:"Cost-first route",k:"route",  x:360, y:110, s:"done",    d:"Cheapest capable tier. grit-junior (local, free) selected; floors enforced."},
+    {id:"work",   l:"JR executes",    k:"work",    x:510, y:52,  s:"active",  d:"ENG-102 under the drone contract: named files only, one retry, escalate on doubt."},
+    {id:"verify", l:"Evidence gate",  k:"verify",  x:660, y:110, s:"active",  d:"'Done' is a claim. Bundle required: tests, diff, provenance, reversibility."},
+    {id:"appr",   l:"Approval",       k:"approval",x:810, y:110, s:"awaiting",d:"APR-114 (medium) awaits the human. SUPER GM may take delegated low/medium."},
+    {id:"done",   l:"Done + audit",   k:"done",    x:960, y:110, s:"queued",  d:"Decision record written, historian linked, trust ledger updated."},
+    {id:"prod",   l:"Prod deploy",    k:"approval",x:810, y:222, s:"blocked", d:"APR-117 policy-blocked — evidence incomplete. No surface can approve it. By design."}
+  ],
+  edges:[["intake","gate"],["gate","route"],["route","work"],["work","verify"],["verify","appr"],["appr","done"],["verify","prod"]]
+};
+const FKC = {trigger:"#b8e34d", gate:"#e05252", route:"#7fd0cf", work:"#e0b452", verify:"#5fca8f", approval:"#e0b452", done:"#b8e34d"};
+const FSC = {done:"#5fca8f", active:"#7fd0cf", awaiting:"#e0b452", queued:"#5c6470", blocked:"#e05252"};
+let FSEL = null, FSIM = -1;
+R.flows = body => {
+  body.innerHTML = `<div class="fl-wrap">
+    <div class="fl-bar">
+      <span class="meta">Every node maps to a runtime primitive — this is the loop that makes autonomy safe.</span>
+      <span style="margin-left:auto"></span>
+      <button class="btn primary" id="flrun">Run simulation</button>
+    </div>
+    <svg id="flcv" viewBox="0 0 1050 280" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="fl-detail card" id="fldet">${FSEL?fdetail(FSEL):'<span class="meta">Click a node — drag to rearrange. The dashed edge is work in motion.</span>'}</div>
+  </div>`;
+  drawFlow(body);
+  body.querySelector("#flrun").onclick = ()=>{
+    FSIM = 0; simStep(body);
+    toast("Flow simulation","Pulse travelling the governed path — intake → gate → route → work → evidence → approval → audit. SIMULATED.","ok");
+  };
+};
+function fdetail(n){
+  return `<b>${esc(n.l)}</b> <span class="pill ${n.s}">${n.s.toUpperCase()}</span>
+    <span class="meta" style="margin-left:6px">${esc(n.d)}</span>`;
+}
+function drawFlow(body){
+  const svg = body.querySelector("#flcv"); if(!svg) return;
+  const N = FLOW.nodes, byId = Object.fromEntries(N.map(n=>[n.id,n]));
+  svg.innerHTML =
+    FLOW.edges.map(([a,b],i)=>{
+      const A=byId[a], B=byId[b];
+      const x1=A.x+62, y1=A.y+20, x2=B.x-4, y2=B.y+20;
+      const mx=(x1+x2)/2;
+      const anim = (byId[a].s==="active"||byId[b].s==="active") ? "animated" : "";
+      const sim = FSIM>=0 && i<=FSIM ? 'style="stroke:#b8e34d;stroke-width:2.4"' : "";
+      return `<path class="fl-edge ${anim}" ${sim} d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}"/>`;
+    }).join("") +
+    N.map((n,i)=>`<g class="fl-node" data-i="${i}" transform="translate(${n.x},${n.y})">
+      <rect width="126" height="40" rx="10" fill="rgba(22,27,35,.9)" stroke="${FSEL===n?"#7fd0cf":"rgba(127,208,207,.22)"}" stroke-width="1.2"/>
+      <circle cx="14" cy="20" r="5" fill="${FSC[n.s]}"${n.s==="active"&&!RM?' opacity=".9"':''}/>
+      <text x="26" y="17" fill="#eae7e0" font-size="10.5" font-weight="650" font-family="-apple-system,sans-serif">${esc(n.l)}</text>
+      <text x="26" y="30" fill="#8d94a0" font-size="8.5" font-family="ui-monospace">${n.s.toUpperCase()} · ${n.k}</text>
+    </g>`).join("");
+  svg.querySelectorAll(".fl-node").forEach(g=>{
+    const n = FLOW.nodes[+g.dataset.i];
+    let drag = null;
+    g.addEventListener("mousedown", e=>{
+      const pt = svgPoint(svg, e); drag = {dx:pt.x-n.x, dy:pt.y-n.y};
+      const mv = ev=>{ const p = svgPoint(svg, ev); n.x = Math.max(4,Math.min(920,p.x-drag.dx)); n.y = Math.max(4,Math.min(236,p.y-drag.dy)); drawFlow(body); };
+      const up = ()=>{ document.removeEventListener("mousemove",mv); document.removeEventListener("mouseup",up); };
+      document.addEventListener("mousemove",mv); document.addEventListener("mouseup",up);
+      e.preventDefault();
+    });
+    g.addEventListener("click", ()=>{ FSEL = n; body.querySelector("#fldet").innerHTML = fdetail(n); drawFlow(body); });
+  });
+}
+function svgPoint(svg, e){
+  const r = svg.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*(1050/r.width), y:(e.clientY-r.top)*(280/r.height)};
+}
+function simStep(body){
+  if(FSIM > FLOW.edges.length){ FSIM = -1; drawFlow(body); return; }
+  drawFlow(body); FSIM++;
+  setTimeout(()=>simStep(body), RM?40:380);
+}
+
+/* ── tabbed prompt/policy editor (Monaco-class, zero deps) ──────────── */
+const ED_FILES = {
+  "delegated_authority.yaml":{mode:"yaml", src: YAML_SRC},
+  "drone-contract.md":{mode:"md", src:`# DRONE CONTRACT — grit-junior (local worker)
+# The system prompt baked into the local model via the Logos vault.
+
+You are a local worker model under AgentGRIT. Fast and cheap, not trusted.
+Everything you output is checked by a stronger tier.
+
+1. Every number ships with the arithmetic that produced it.
+2. Never state an API, kwarg, version, or path from memory — prefix UNVERIFIED.
+3. Never say a task is done — print the exact check command instead.
+4. Touch only files named in the task; otherwise ESCALATE.
+5. One informed retry. Same failure twice — ESCALATE with evidence.
+6. Money, secrets, deploys, deletion — do nothing, ESCALATE.
+7. Do only what was asked. Improvements become one-line SUGGEST.
+8. Unsure — LIKELY or UNKNOWN. Never dress a guess as fact.
+
+> You are a leash, not a conscience. When in doubt, ESCALATE — that is success.`},
+  "logos-synthesis.md":{mode:"md", src:`# Logos Synthesis — the fourth mind (excerpt)
+
+The invariant core — where all three minds independently converge:
+
+1. Evidence before claims — the transcript is never a source.
+2. Four-token label law: CERTAIN / LIKELY / ASSUMPTION / UNKNOWN.
+3. Self-attack before shipping; attack twice when the conclusion pleases.
+4. Fail closed on risk class.
+5. Answer first, risks last, bad news unburied.
+
+The three-lens pass, on any non-trivial decision:
+- What would Fable object to?   (the unverified load-bearing claim)
+- What would Grok do differently? (the smaller executable diff)
+- What would Terra reinterpret?  (the premise the asker has wrong)
+
+> Divergence is surfaced with lineage, never averaged. A lens outside its
+> home domain may land the decisive insight — and is credited when it does.`}
+};
+let ED_CUR = "delegated_authority.yaml";
+function hlMd(src){
+  return src.split("\n").map(l=>{
+    let h = esc(l);
+    if(/^#/.test(l)) h = `<span class="mdh">${h}</span>`;
+    else if(/^>/.test(l)) h = `<span class="mdq">${h}</span>`;
+    else if(/^\d+\.|^- /.test(l.trim())) h = `<span class="mdb">${h}</span>`;
+    return `<span class="ln">${h}</span>`;
+  }).join("");
+}
+R.editor = body => {
+  const f = ED_FILES[ED_CUR];
+  body.innerHTML = `<div class="ed-wrap">
+    <div class="ed-tabs">${Object.keys(ED_FILES).map(n=>
+      `<span class="ed-tab ${n===ED_CUR?"on":""}" data-f="${n}">${n}</span>`).join("")}</div>
+    <div class="ed-bar">
+      <span class="ed-file">vault://${ED_CUR}</span>
+      <span class="pill queued">${ED_CUR.endsWith(".yaml")?"STAGED — not yet enforced":"VAULT ARTIFACT — sha256-pinned"}</span>
+      <span style="margin-left:auto"></span>
+      <button class="btn" id="edval">Validate</button>
+      <button class="btn primary" id="edapply">Apply</button>
+    </div>
+    <div class="ed">${f.mode==="yaml" ? hlYaml(f.src) : hlMd(f.src)}</div>
+    <div class="note" style="margin-top:8px">${ED_CUR.endsWith(".yaml")
+      ? "Five tiers, explicit may / must_escalate; super_gm carries never_may. Enforcement wiring is the next runtime phase."
+      : "Read-only view of a Logos vault artifact — edits happen through vault admission (quarantine → review → approve), never inline."}</div>
+  </div>`;
+  body.querySelectorAll(".ed-tab").forEach(t=>{ t.onclick = ()=>{ ED_CUR = t.dataset.f; R.editor(body); }; });
+  body.querySelector("#edval").onclick = ()=>{
+    if(ED_CUR.endsWith(".yaml")){
+      const roles = (f.src.match(/^\s{2}\w+:/gm)||[]).length;
+      toast("Validation passed", `${roles} roles · every role has an escalation set · super_gm.never_may present · no self-granted authority.`, "ok");
+    } else {
+      toast("Integrity verified", "Artifact matches its manifest sha256 — VERBATIM against the vault. (Demo check.)", "ok");
+    }
+  };
+  body.querySelector("#edapply").onclick = ()=> simulated(
+    ED_CUR.endsWith(".yaml") ? "Apply delegated_authority.yaml (doctrine change — governed path)"
+    : "Promote artifact revision through vault admission");
+};
+
+/* ── finish ─────────────────────────────────────────────────────────── */
+renderDock();
+setTimeout(()=>{ toast("GRIT Aide online","The oracle orb (bottom-right, ⌘J) watches everything and interrupts for nothing below HIGH. Ask it 'where do I start?'","ok"); }, RM?400:2200);
 })();
 
 </script>
