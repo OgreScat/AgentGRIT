@@ -82,3 +82,6 @@ docker-compose.override.yml
 
 # Eval run artifacts
 evals/last_report.json
+
+# Local GRIT-session bootstrap file, regenerated per session, never shipped
+GROK-PRIME.md
