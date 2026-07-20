@@ -318,6 +318,63 @@ pre.code{background:#0e1116;border:1px solid var(--border);border-radius:8px;pad
   .dock-badge{animation:none}.fl-edge.animated{animation:none}#boot .ring{animation:none}
 }
 </style>
+<style id="v5">
+/* ═══ V5 — Calm Guided Mode (default) + Comfort mode + a11y contract ═══ */
+#guided{position:fixed;inset:0;z-index:8000;overflow:auto;display:none;
+  background:radial-gradient(1200px 700px at 60% 0%, #101722 0%, #0b0f15 55%, #080b0f 100%);
+  color:var(--text);font-size:18px;line-height:1.6}
+body.guided #guided{display:block}
+body.guided #dock, body.guided #aide-orb, body.guided .win, body.guided .dicon{display:none !important}
+#gwrap{max-width:720px;margin:0 auto;padding:56px 24px 80px}
+.ghello{font-size:28px;font-weight:650;margin:0 0 4px}
+.gstatus{font-size:19px;color:#b9c2ce;margin:0 0 28px}
+.gstatus b{color:var(--lime);font-weight:650}
+.gcard{background:rgba(22,28,37,.72);border:1px solid rgba(127,208,207,.18);border-radius:16px;
+  padding:22px 24px;margin-bottom:18px}
+.gcard.attn{border-color:rgba(224,180,82,.45)}
+.gcard h2{margin:0 0 6px;font-size:20px;font-weight:650;text-transform:none;letter-spacing:0;color:var(--text)}
+.gcard p{margin:6px 0;font-size:17px;color:#c6cdd8}
+.gcard .calm{color:#9aa4b2;font-size:16px}
+.gbtn{display:inline-block;min-height:48px;padding:12px 26px;border-radius:12px;border:1px solid var(--border-hi);
+  background:#222b36;color:var(--text);font:650 17px var(--font);cursor:pointer;margin:8px 12px 4px 0}
+.gbtn:hover{border-color:rgba(127,208,207,.5)}
+.gbtn:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.gbtn.primary{background:#2e3d1d;border-color:#4e6427;color:#d8f0a0}
+.gbtn.quiet{background:transparent;border-color:var(--border);color:#9aa4b2}
+.grow{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 26px}
+.gact{display:flex;gap:12px;align-items:baseline;padding:13px 4px;border-bottom:1px solid #1d232c;font-size:17px}
+.gact:last-child{border-bottom:0}
+.gact .chip{font-size:14px;padding:3px 12px;border-radius:999px;white-space:nowrap}
+.gact .chip.ok{background:#1d2c1f;color:#8fd8ae}
+.gact .chip.attn{background:#332c18;color:#e8c980}
+.gact .chip.safe{background:#232833;color:#9aa4b2}
+.gwhy{background:transparent;border:0;color:var(--cyan);font:16px var(--font);cursor:pointer;
+  text-decoration:underline;padding:2px 4px}
+.gwhy:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.gwhybox{background:rgba(17,22,29,.9);border:1px dashed var(--border-hi);border-radius:10px;
+  padding:12px 16px;margin-top:10px;font-size:16px;color:#b9c2ce}
+.gfoot{display:flex;gap:16px;align-items:center;margin-top:34px;flex-wrap:wrap}
+.gtoggle{font-size:15px;color:#9aa4b2}
+#gask{margin-top:10px}
+#gask input{width:100%;min-height:48px;background:rgba(13,17,22,.9);border:1px solid var(--border-hi);
+  border-radius:12px;color:var(--text);font:17px var(--font);padding:12px 16px}
+#gask input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+.gans{background:rgba(24,30,39,.8);border:1px solid rgba(184,227,77,.25);border-radius:12px;
+  padding:14px 18px;margin-top:12px;font-size:17px}
+.gans .who{font-size:13px;font-weight:700;color:var(--lime);display:block;margin-bottom:4px;letter-spacing:.04em}
+details.gabout{margin-top:14px;color:#8d94a0;font-size:15px}
+details.gabout summary{cursor:pointer}
+details.gabout summary:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+/* Comfort mode: larger everything, motion off */
+body.comfort #guided{font-size:21px}
+body.comfort .ghello{font-size:32px}
+body.comfort .gcard p{font-size:20px}
+body.comfort .gact{font-size:20px}
+body.comfort .gbtn{min-height:56px;font-size:19px;padding:15px 30px}
+body.comfort *{animation:none !important;transition:none !important}
+/* keyboard focus is always visible, everywhere */
+:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+</style>
 </head>
 <body>
 <div id="menubar">
@@ -1549,6 +1606,163 @@ orb.addEventListener("click", e=>{
   setTimeout(placePanel, 0); // after toggle, anchor panel near wherever the orb lives
 }, true);
 })();
+</script>
+<script id="v5js">
+/* ═══ V5 — Calm Guided Mode. Default for new users; Operator one click away.
+   Presentation layer only: same data, same GET-only never-acts invariant.
+   Plain language first; every warning carries "Why am I seeing this?". ═══ */
+(function(){
+"use strict";
+const MODE_KEY = "grit-ui-mode", COMFORT_KEY = "grit-comfort";
+function mode(){ try{ return localStorage.getItem(MODE_KEY) || "guided"; }catch(e){ return "guided"; } }
+function setMode(m){ try{ localStorage.setItem(MODE_KEY, m); }catch(e){} applyMode(); }
+function comfy(){ try{ return localStorage.getItem(COMFORT_KEY) === "1"; }catch(e){ return false; } }
+
+const g = document.createElement("div");
+g.id = "guided"; g.setAttribute("role", "main");
+document.body.appendChild(g);
+
+function hour(){ const h = new Date().getHours(); return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"; }
+
+function plainApproval(){
+  const ap = getApprovals().filter(a=>a.state==="awaiting")[0];
+  if(!ap) return null;
+  return {
+    id: ap.id,
+    title: "Allow a test-messaging setup",
+    impact: "This would let the system send test notifications in a practice area only. It cannot touch anything real, and it can be undone.",
+    waiting: "This is waiting for your decision. Nothing has been sent.",
+    why: "Creating any credential always needs a person to agree first - that is one of this system's safety rules.",
+  };
+}
+
+function activity(){
+  return [
+    {txt: "A research brief finished - ready to read.", chip: "ok", label: "no action needed"},
+    {txt: "Safety check passed on the current work.", chip: "ok", label: "no action needed"},
+    {txt: "A release was stopped for safety - the proof it needs is not complete yet.", chip: "safe", label: "handled automatically",
+     why: "Anything that would go live must first show its safety evidence. It stays stopped until that evidence exists. Nothing went out."},
+    {txt: "A draft was saved. Nothing was published.", chip: "ok", label: "no action needed"},
+  ];
+}
+
+let askAns = null, whyOpen = {};
+function guideAnswer(q){
+  const t = (q||"").toLowerCase();
+  if(/publish|send|approve|deploy|spend|buy/.test(t))
+    return "I cannot approve, publish, spend, or deploy anything for you - a person always does that part. I can show you exactly what is waiting and what it would do.";
+  if(/safe|protect/.test(t))
+    return "Everything is protected. Nothing gets sent, published, or spent unless you say so. One item is waiting for your decision, and it is clearly marked above.";
+  if(/start|help|do/.test(t))
+    return "Tell me what you would like help with in plain words - research, writing, checking a project. I will prepare it and show you the result before anything leaves this computer.";
+  return "I keep track of what needs attention and help you find the next safe step. Try asking: what needs me today?";
+}
+
+function render(){
+  const ap = plainApproval();
+  const acts = activity();
+  g.innerHTML = `<div id="gwrap">
+    <p class="ghello">${hour()}.</p>
+    <p class="gstatus"><b>Everything is protected.</b> ${ap ? "1 item needs your attention." : "Nothing needs your attention right now."}</p>
+
+    ${ap ? `<div class="gcard attn">
+      <h2>${esc(ap.title)}</h2>
+      <p>${esc(ap.impact)}</p>
+      <p class="calm">${esc(ap.waiting)}</p>
+      <button class="gbtn primary" data-act="review">Review now</button>
+      <button class="gbtn quiet" data-act="later">Not now</button>
+      <button class="gwhy" data-why="ap">Why am I seeing this?</button>
+      ${whyOpen.ap ? `<div class="gwhybox">${esc(ap.why)}</div>` : ""}
+      ${whyOpen.review ? `<div class="gwhybox">To decide, use the approval screen in the Advanced view - or your usual approval channel. Reviewing here never triggers anything: nothing happens until you explicitly agree there.</div>` : ""}
+    </div>` : ""}
+
+    <div class="gcard">
+      <h2>What would you like to do?</h2>
+      <div class="grow">
+        <button class="gbtn" data-act="ask">Ask AgentGRIT</button>
+        <button class="gbtn" data-act="projects">Check my projects</button>
+        <button class="gbtn" data-act="new">Start something new</button>
+      </div>
+      <div id="gask" ${askAns===null && !whyOpen.ask ? 'hidden' : ''}>
+        <label for="gask-in" class="calm">Ask in plain words - I will point you to the next safe step.</label>
+        <input id="gask-in" type="text" placeholder="What needs me today?"/>
+        ${askAns ? `<div class="gans"><span class="who">AGENTGRIT GUIDE</span>${esc(askAns)}</div>` : ""}
+      </div>
+      ${whyOpen.projects ? `<div class="gwhybox">One project is active: the desktop app itself, 68% done. One task is paused, waiting on the decision above. Everything else is moving on its own.</div>` : ""}
+      ${whyOpen.newx ? `<div class="gwhybox">Describe it in the box under "Ask AgentGRIT" - I will prepare the work and show you the result before anything leaves this computer.</div>` : ""}
+    </div>
+
+    <div class="gcard">
+      <h2>Recent activity</h2>
+      ${acts.map((a,i)=>`<div class="gact">
+        <span>${esc(a.txt)}</span>
+        <span class="chip ${a.chip}">${esc(a.label)}</span>
+        ${a.why ? `<button class="gwhy" data-why="act${i}">Why?</button>` : ""}
+      </div>${a.why && whyOpen["act"+i] ? `<div class="gwhybox">${esc(a.why)}</div>` : ""}`).join("")}
+    </div>
+
+    <div class="gcard">
+      <h2>AgentGRIT Guide</h2>
+      <p>I keep track of what needs attention and help you find the next safe step.</p>
+      <p class="calm">I cannot approve, publish, spend, or deploy anything for you.</p>
+      <details class="gabout"><summary>About this assistant (technical details)</summary>
+        <p>Runs locally on this computer. Reasoning: local model (gemma4:12b) carrying the
+        Logos four-mind corpus - Fable, Grok, Terra, and their synthesis. This screen only
+        reads state; every consequential action goes through the governed approval path.</p>
+      </details>
+    </div>
+
+    <div class="gfoot">
+      <label class="gtoggle"><input type="checkbox" id="gcomfort" ${comfy() ? "checked" : ""}/> Comfortable reading (larger text, less motion)</label>
+      <span style="flex:1"></span>
+      <button class="gbtn quiet" data-act="advanced">Advanced view</button>
+    </div>
+  </div>`;
+
+  g.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => {
+    const a = b.dataset.act;
+    if(a === "advanced") setMode("operator");
+    else if(a === "review"){ whyOpen.review = !whyOpen.review; render(); }
+    else if(a === "later"){ whyOpen = {}; askAns = null; render(); }
+    else if(a === "ask"){ whyOpen.ask = true; render(); const i = g.querySelector("#gask-in"); i && i.focus(); }
+    else if(a === "projects"){ whyOpen.projects = !whyOpen.projects; render(); }
+    else if(a === "new"){ whyOpen.newx = !whyOpen.newx; whyOpen.ask = true; render(); }
+  }));
+  g.querySelectorAll("[data-why]").forEach(b => b.addEventListener("click", () => {
+    const k = b.dataset.why; whyOpen[k] = !whyOpen[k]; render();
+  }));
+  const inp = g.querySelector("#gask-in");
+  if(inp) inp.addEventListener("keydown", e => {
+    if(e.key === "Enter"){ askAns = guideAnswer(inp.value); render();
+      const el = g.querySelector("#gask-in"); if(el){ el.value = ""; el.focus(); } }
+  });
+  const gc = g.querySelector("#gcomfort");
+  if(gc) gc.addEventListener("change", () => {
+    try{ localStorage.setItem(COMFORT_KEY, gc.checked ? "1" : "0"); }catch(e){}
+    document.body.classList.toggle("comfort", gc.checked);
+  });
+}
+
+function applyMode(){
+  const m = mode();
+  document.body.classList.toggle("guided", m === "guided");
+  document.body.classList.toggle("comfort", comfy());
+  if(m === "guided") render();
+}
+
+/* Operator menubar gains a way back to Simple view */
+const mb = document.getElementById("mb-right");
+if(mb){
+  const btn = document.createElement("button");
+  btn.textContent = "Simple view";
+  btn.style.cssText = "background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);font:600 11px var(--font);padding:2px 9px;cursor:pointer";
+  btn.addEventListener("click", () => setMode("guided"));
+  mb.insertBefore(btn, mb.firstChild);
+}
+
+applyMode();
+})();
+
 </script>
 </body>
 </html>
